@@ -87,6 +87,7 @@ Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
 C_SOURCES_APP = \
 App/Src/app.c \
 App/Src/app_time.c \
+App/Src/input_manager.c \
 App/Src/vehicle_state.c \
 App/Src/msp/msp_codec.c \
 App/Src/msp/msp_client.c \
@@ -95,6 +96,8 @@ App/Src/platform/display_metrics.c \
 App/Src/platform/lvgl_port_math.c \
 App/Src/platform/lvgl_port.c \
 App/Src/ui/ui_app.c \
+App/Src/ui/ui_theme.c \
+App/Src/ui/screen_dashboard.c \
 App/Src/diagnostics.c
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \

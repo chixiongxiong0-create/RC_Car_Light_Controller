@@ -15,6 +15,7 @@ add_executable(unit_tests
     test_msp_uart.c
     test_lvgl_port_math.c
     test_display_metrics.c
+    test_input_manager.c
     ../App/Src/app_time.c
     ../App/Src/msp/msp_codec.c
     ../App/Src/msp/msp_client.c
@@ -22,6 +23,7 @@ add_executable(unit_tests
     ../App/Src/platform/msp_uart.c
     ../App/Src/platform/lvgl_port_math.c
     ../App/Src/platform/display_metrics.c
+    ../App/Src/input_manager.c
 )
 target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
 target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1)
