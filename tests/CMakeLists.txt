@@ -19,6 +19,7 @@ add_executable(unit_tests
     test_button_input.c
     test_dashboard_format.c
     test_face_model.c
+    test_low_battery_policy.c
     ../App/Src/app_time.c
     ../App/Src/msp/msp_codec.c
     ../App/Src/msp/msp_client.c
@@ -30,6 +31,7 @@ add_executable(unit_tests
     ../App/Src/platform/button_input.c
     ../App/Src/ui/dashboard_format.c
     ../App/Src/ui/face_model.c
+    ../App/Src/ui/low_battery_policy.c
 )
 target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
 target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1)

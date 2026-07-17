@@ -100,6 +100,7 @@ App/Src/ui/ui_app.c \
 App/Src/ui/ui_theme.c \
 App/Src/ui/screen_dashboard.c \
 App/Src/ui/face_model.c \
+App/Src/ui/low_battery_policy.c \
 App/Src/ui/screen_face.c \
 App/Src/ui/dashboard_format.c \
 App/Src/diagnostics.c
