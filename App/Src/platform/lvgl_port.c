@@ -48,7 +48,7 @@ static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
     }
 
     clean_scanout_cache_for_rotated_area(area);
-    display_metrics_record_flush(&metrics);
+    display_metrics_record_flush(&metrics, lv_display_flush_is_last(disp));
     lv_display_flush_ready(disp);
 }
 

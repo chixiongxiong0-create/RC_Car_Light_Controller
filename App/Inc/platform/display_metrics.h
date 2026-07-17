@@ -11,8 +11,9 @@ typedef struct {
 } DisplayMetrics;
 
 void display_metrics_init(DisplayMetrics *metrics, uint32_t now_ms);
-void display_metrics_record_flush(DisplayMetrics *metrics);
+void display_metrics_record_flush(DisplayMetrics *metrics, bool is_last);
 bool display_metrics_update(DisplayMetrics *metrics, uint32_t now_ms);
 uint16_t display_metrics_fps(const DisplayMetrics *metrics);
+uint16_t display_metrics_clamp_ui_fps(uint16_t fps);
 
 #endif

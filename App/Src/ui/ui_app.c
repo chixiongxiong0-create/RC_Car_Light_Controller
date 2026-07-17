@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include "lvgl.h"
+#include "platform/display_metrics.h"
 #include "platform/lvgl_port.h"
 
 static lv_obj_t *fps_label;
@@ -53,7 +54,7 @@ void ui_app_tick(uint32_t now_ms, const VehicleState *state)
 
     {
         char text[12];
-        const unsigned fps = lvgl_port_fps();
+        const unsigned fps = display_metrics_clamp_ui_fps(lvgl_port_fps());
         if (fps != displayed_fps) {
             (void)snprintf(text, sizeof(text), "%u FPS", fps);
             lv_label_set_text(fps_label, text);

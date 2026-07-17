@@ -7,9 +7,11 @@ void display_metrics_init(DisplayMetrics *metrics, uint32_t now_ms)
     metrics->fps = 0u;
 }
 
-void display_metrics_record_flush(DisplayMetrics *metrics)
+void display_metrics_record_flush(DisplayMetrics *metrics, bool is_last)
 {
-    ++metrics->flush_count;
+    if (is_last) {
+        ++metrics->flush_count;
+    }
 }
 
 bool display_metrics_update(DisplayMetrics *metrics, uint32_t now_ms)
@@ -29,4 +31,9 @@ bool display_metrics_update(DisplayMetrics *metrics, uint32_t now_ms)
 uint16_t display_metrics_fps(const DisplayMetrics *metrics)
 {
     return metrics->fps;
+}
+
+uint16_t display_metrics_clamp_ui_fps(uint16_t fps)
+{
+    return (fps > 99u) ? 99u : fps;
 }
