@@ -91,13 +91,11 @@ App/Src/vehicle_state.c \
 App/Src/msp/msp_codec.c \
 App/Src/msp/msp_client.c \
 App/Src/platform/msp_uart.c \
+App/Src/platform/display_metrics.c \
 App/Src/platform/lvgl_port_math.c \
 App/Src/platform/lvgl_port.c \
 App/Src/ui/ui_app.c \
 App/Src/diagnostics.c
-
-LVGL_PATH = Middlewares/Third_Party/lvgl
-LVGL_C_SOURCES = $(shell powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/lvgl_sources.ps1)
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \
 Drivers/BSP/Components/LCD/BSP_LCD.c \
@@ -111,7 +109,7 @@ Drivers/BSP/wio_lite_ai/wio_lite_ai_lcd.c \
 Utilities/lcd/stm32_lcd.c
 
 ifdef bsp_config_seedstudio
-C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_SEEDSTUDIO_SCREEN) $(LVGL_C_SOURCES)
+C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_SEEDSTUDIO_SCREEN)
 else
 C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_VITTASCIENCE_SPI_SCREEN)
 endif
@@ -243,9 +241,15 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 #######################################
 # list of objects
 OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o))))
-LVGL_OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(notdir $(LVGL_C_SOURCES:.c=.o))))
-$(LVGL_OBJECTS): CFLAGS += -Os
 vpath %.c $(sort $(dir $(C_SOURCES)))
+
+ifdef bsp_config_seedstudio
+LVGL_MANIFEST = $(BUILD_DIR)/lvgl_sources.mk
+ifneq ($(MAKECMDGOALS),clean)
+-include $(LVGL_MANIFEST)
+endif
+OBJECTS += $(LVGL_OBJECTS)
+endif
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
@@ -254,6 +258,13 @@ vpath %.S $(sort $(dir $(ASMM_SOURCES)))
 
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+
+$(LVGL_MANIFEST): scripts/lvgl_sources.ps1 | $(BUILD_DIR)
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File $< -OutputPath $@
+
+$(BUILD_DIR)/lvgl/%.o: Middlewares/Third_Party/lvgl/src/%.c Makefile lv_conf.h
+	mkdir -p $(dir $@)
+	$(CC) -c $(CFLAGS) -Os -MF"$(@:.o=.d)" -Wa,-a,-ad,-alms=$(@:.o=.lst) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@

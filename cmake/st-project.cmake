@@ -93,6 +93,7 @@ target_sources(
     "App\\Src\\msp\\msp_codec.c"
     "App\\Src\\msp\\msp_client.c"
     "App\\Src\\platform\\msp_uart.c"
+    "App\\Src\\platform\\display_metrics.c"
     "App\\Src\\platform\\lvgl_port_math.c"
     "App\\Src\\platform\\lvgl_port.c"
     "App\\Src\\ui\\ui_app.c"

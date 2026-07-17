@@ -11,6 +11,9 @@
 #include "vehicle_state.h"
 
 static MspClient client;
+#ifdef BSP_CONFIG_SEEDSTUDIO
+static bool ui_ready;
+#endif
 
 static bool write_msp(const uint8_t *data, size_t length, void *ctx)
 {
@@ -45,8 +48,10 @@ void App_Init(void)
   msp_client_init(&client, write_msp, on_msp_frame, NULL);
   diagnostics_init();
 #ifdef BSP_CONFIG_SEEDSTUDIO
-  lvgl_port_init();
-  ui_app_init();
+  ui_ready = lvgl_port_init();
+  if (ui_ready) {
+    ui_app_init();
+  }
 #endif
 }
 
@@ -61,8 +66,10 @@ void App_Tick(uint32_t now_ms)
   vehicle_state_tick(now_ms);
   input_manager_tick(now_ms, vehicle_state_get());
 #ifdef BSP_CONFIG_SEEDSTUDIO
-  lvgl_port_tick(now_ms);
-  ui_app_tick(now_ms, vehicle_state_get());
+  if (ui_ready) {
+    lvgl_port_tick(now_ms);
+    ui_app_tick(now_ms, vehicle_state_get());
+  }
 #endif
   led_controller_tick(now_ms, vehicle_state_get());
   diagnostics_tick(now_ms);

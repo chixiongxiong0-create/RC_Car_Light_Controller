@@ -1,14 +1,15 @@
 #include "ui/ui_app.h"
 
 #include <stdio.h>
+#include <limits.h>
 
 #include "lvgl.h"
+#include "platform/lvgl_port.h"
 
 static lv_obj_t *fps_label;
 static lv_obj_t *moving_block;
 static uint32_t last_frame_ms;
-static uint32_t fps_window_ms;
-static uint16_t frame_count;
+static unsigned displayed_fps = UINT_MAX;
 
 void ui_app_init(void)
 {
@@ -48,18 +49,15 @@ void ui_app_tick(uint32_t now_ms, const VehicleState *state)
         const int32_t x = 8 + (int32_t)((now_ms / 8u) % (uint32_t)travel);
         lv_obj_set_x(moving_block, x);
         last_frame_ms = now_ms;
-        ++frame_count;
     }
 
-    if ((uint32_t)(now_ms - fps_window_ms) >= 1000u) {
-        char text[10];
-        unsigned fps = frame_count;
-        if (fps > 99u) {
-            fps = 99u;
+    {
+        char text[12];
+        const unsigned fps = lvgl_port_fps();
+        if (fps != displayed_fps) {
+            (void)snprintf(text, sizeof(text), "%u FPS", fps);
+            lv_label_set_text(fps_label, text);
+            displayed_fps = fps;
         }
-        (void)snprintf(text, sizeof(text), "%u FPS", fps);
-        lv_label_set_text(fps_label, text);
-        frame_count = 0u;
-        fps_window_ms = now_ms;
     }
 }
