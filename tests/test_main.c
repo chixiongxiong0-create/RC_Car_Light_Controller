@@ -12,6 +12,7 @@ void test_button_input(void);
 void test_dashboard_format(void);
 void test_face_model(void);
 void test_low_battery_policy(void);
+void test_showcase_model(void);
 
 int main(void)
 {
@@ -27,6 +28,7 @@ int main(void)
     test_dashboard_format();
     test_face_model();
     test_low_battery_policy();
+    test_showcase_model();
     puts("all tests passed");
     return 0;
 }
