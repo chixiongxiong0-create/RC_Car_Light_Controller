@@ -10,6 +10,7 @@ void test_display_metrics(void);
 void test_input_manager(void);
 void test_button_input(void);
 void test_dashboard_format(void);
+void test_face_model(void);
 
 int main(void)
 {
@@ -23,6 +24,7 @@ int main(void)
     test_input_manager();
     test_button_input();
     test_dashboard_format();
+    test_face_model();
     puts("all tests passed");
     return 0;
 }
