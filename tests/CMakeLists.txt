@@ -9,7 +9,11 @@ enable_testing()
 add_executable(unit_tests
     test_main.c
     test_app_time.c
+    test_msp_codec.c
+    test_msp_client.c
     ../App/Src/app_time.c
+    ../App/Src/msp/msp_codec.c
+    ../App/Src/msp/msp_client.c
 )
 target_include_directories(unit_tests PRIVATE ../App/Inc)
 
