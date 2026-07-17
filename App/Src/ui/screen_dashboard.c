@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "ui/ui_theme.h"
+#include "ui/dashboard_format.h"
 
 static lv_obj_t *throttle_arc;
 static lv_obj_t *throttle_value;
@@ -66,7 +67,7 @@ lv_obj_t *screen_dashboard_create(void)
     ui_theme_apply_top_status(top);
     armed_value = make_label(top, "SAFE", false);
     lv_obj_align(armed_value, LV_ALIGN_LEFT_MID, 0, 0);
-    mode_value = make_label(top, "INAV", false);
+    mode_value = make_label(top, "M:00000000", false);
     lv_obj_align(mode_value, LV_ALIGN_CENTER, 0, 0);
     link_value = make_label(top, "START", false);
     lv_obj_align(link_value, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -135,7 +136,8 @@ void screen_dashboard_update(const VehicleState *state)
     (void)snprintf(text, sizeof text, "%u", (unsigned)state->gps_sats);
     set_text_changed(gps_value, text);
     set_text_changed(armed_value, state->armed ? "ARMED" : "SAFE");
-    set_text_changed(mode_value, "INAV");
+    dashboard_format_mode(text, sizeof text, state->mode_flags);
+    set_text_changed(mode_value, text);
     switch (state->link) {
     case LINK_OK: set_text_changed(link_value, "LINK OK"); break;
     case LINK_STALE: set_text_changed(link_value, "STALE"); break;

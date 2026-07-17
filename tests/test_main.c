@@ -8,6 +8,8 @@ void test_msp_uart(void);
 void test_lvgl_port_math(void);
 void test_display_metrics(void);
 void test_input_manager(void);
+void test_button_input(void);
+void test_dashboard_format(void);
 
 int main(void)
 {
@@ -19,6 +21,8 @@ int main(void)
     test_lvgl_port_math();
     test_display_metrics();
     test_input_manager();
+    test_button_input();
+    test_dashboard_format();
     puts("all tests passed");
     return 0;
 }

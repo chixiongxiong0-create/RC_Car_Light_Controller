@@ -92,12 +92,14 @@ App/Src/vehicle_state.c \
 App/Src/msp/msp_codec.c \
 App/Src/msp/msp_client.c \
 App/Src/platform/msp_uart.c \
+App/Src/platform/button_input.c \
 App/Src/platform/display_metrics.c \
 App/Src/platform/lvgl_port_math.c \
 App/Src/platform/lvgl_port.c \
 App/Src/ui/ui_app.c \
 App/Src/ui/ui_theme.c \
 App/Src/ui/screen_dashboard.c \
+App/Src/ui/dashboard_format.c \
 App/Src/diagnostics.c
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \

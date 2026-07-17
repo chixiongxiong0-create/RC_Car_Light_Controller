@@ -21,6 +21,7 @@ typedef struct {
     float heading_deg;
     float battery_v;
     uint16_t rssi;
+    uint32_t mode_flags;
     uint8_t gps_sats;
     bool armed;
     LinkState link;

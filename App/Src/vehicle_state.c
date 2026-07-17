@@ -41,6 +41,18 @@ static bool read_i16(const MspFrame *frame, size_t offset, int16_t *value)
     return true;
 }
 
+static bool read_u32(const MspFrame *frame, size_t offset, uint32_t *value)
+{
+    if (offset > frame->length || (size_t)frame->length - offset < 4u) {
+        return false;
+    }
+    *value = (uint32_t)frame->payload[offset] |
+             ((uint32_t)frame->payload[offset + 1u] << 8) |
+             ((uint32_t)frame->payload[offset + 2u] << 16) |
+             ((uint32_t)frame->payload[offset + 3u] << 24);
+    return true;
+}
+
 static float lowpass(float previous, float input, float alpha)
 {
     return previous + alpha * (input - previous);
@@ -192,9 +204,15 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
     case MSP_RAW_GPS:
         state.gps_sats = frame->payload[1];
         break;
-    case MSP_STATUS:
-        state.armed = (frame->payload[6] & 1u) != 0u;
+    case MSP_STATUS: {
+        uint32_t mode_flags;
+        if (!read_u32(frame, 6u, &mode_flags)) {
+            return false;
+        }
+        state.mode_flags = mode_flags;
+        state.armed = (mode_flags & 1u) != 0u;
         break;
+    }
     default:
         return false;
     }

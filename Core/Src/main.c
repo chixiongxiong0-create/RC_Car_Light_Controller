@@ -75,14 +75,6 @@ int main(void)
     App_Tick(HAL_GetTick());
   }
 }
-void BSP_PB_Callback(Button_TypeDef Button)
-{
-  if (Button == BUTTON_USER1)
-  {
-    BSP_LED_Toggle(LED_RED);
-  }
-}
-
 /* Private functions ---------------------------------------------------------*/
 /**
  * @brief Initializes the WH peripherals
@@ -104,7 +96,7 @@ static void Hardware_Init(void)
   
   BSP_LED_Init(LED_RED);
   BSP_LED_Init(LED_YELLOW);
-  BSP_PB_Init(BUTTON_USER1, BUTTON_MODE_EXTI);
+  BSP_PB_Init(BUTTON_USER1, BUTTON_MODE_GPIO);
   BSP_OSPI_RAM_Init(0);
   BSP_OSPI_RAM_EnableMemoryMappedMode(0);
   MX_CRC_Init();

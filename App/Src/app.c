@@ -4,12 +4,14 @@
 #include "input_manager.h"
 #include "msp/msp_client.h"
 #include "platform/msp_uart.h"
+#include "platform/button_input.h"
 #ifdef BSP_CONFIG_SEEDSTUDIO
 #include "platform/lvgl_port.h"
 #include "ui/ui_app.h"
 #endif
 #include "usart.h"
 #include "vehicle_state.h"
+#include "wio_lite_ai.h"
 
 static MspClient client;
 #ifdef BSP_CONFIG_SEEDSTUDIO
@@ -26,6 +28,18 @@ static void on_msp_frame(const MspFrame *frame, uint32_t now_ms, void *ctx)
 {
   (void)ctx;
   (void)vehicle_state_on_msp(frame, now_ms);
+}
+
+static int32_t read_user_button(void *ctx)
+{
+  (void)ctx;
+  return BSP_PB_GetState(BUTTON_USER1);
+}
+
+static void set_user_button(bool pressed, uint32_t now_ms, void *ctx)
+{
+  (void)ctx;
+  input_manager_set_button(pressed, now_ms);
 }
 
 /* Task 5 LED adapter: replaced by its owning module in Task 10. */
@@ -61,6 +75,7 @@ void App_Tick(uint32_t now_ms)
   }
   msp_client_tick(&client, now_ms);
   vehicle_state_tick(now_ms);
+  button_input_poll(now_ms, read_user_button, set_user_button, NULL);
   input_manager_set_touch_available(diagnostics_get()->touch_available);
   input_manager_tick(now_ms, vehicle_state_get());
 #ifdef BSP_CONFIG_SEEDSTUDIO

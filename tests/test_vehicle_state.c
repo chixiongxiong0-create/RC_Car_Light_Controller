@@ -37,7 +37,7 @@ static void test_decodes_supported_frames(void)
         0xbc, 0x9a, 0xf0, 0xde
     };
     const uint8_t status_payload[] = {
-        1, 2, 3, 4, 5, 6, 1, 0, 0, 0, 7
+        1, 2, 3, 4, 5, 6, 1, 1, 0, 0, 7
     };
 
     vehicle_state_init();
@@ -71,6 +71,7 @@ static void test_decodes_supported_frames(void)
     input = frame(MSP_STATUS, status_payload, sizeof status_payload);
     assert(vehicle_state_on_msp(&input, 140u));
     assert(vehicle_state_get()->armed);
+    assert(vehicle_state_get()->mode_flags == 0x00000101u);
 }
 
 static void test_channel_mapping_filter_and_deadband(void)
@@ -129,9 +130,13 @@ static void test_malformed_is_atomic(void)
 {
     const uint8_t valid[] = {100, 0, 0, 0, 0x22, 0x11, 0, 0};
     const uint8_t bad[] = {250, 0, 0, 0};
+    const uint8_t status[] = {0, 0, 0, 0, 0, 0, 0x79, 0x56, 0x34, 0x12, 0};
     vehicle_state_init();
     MspFrame input = frame(MSP_ANALOG, valid, 7u);
     assert(vehicle_state_on_msp(&input, 10u));
+    input = frame(MSP_STATUS, status, sizeof status);
+    assert(vehicle_state_on_msp(&input, 11u));
+    assert(vehicle_state_get()->mode_flags == 0x12345679u);
     const VehicleState before = *vehicle_state_get();
     input = frame(MSP_ANALOG, bad, sizeof bad);
     assert(!vehicle_state_on_msp(&input, 999u));
