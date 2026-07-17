@@ -21,3 +21,4 @@ HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *uart,
                                       uint8_t *data, uint16_t length);
 HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *uart,
                                        const uint8_t *data, uint16_t length);
+HAL_StatusTypeDef HAL_UART_AbortReceive(UART_HandleTypeDef *uart);

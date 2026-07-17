@@ -51,6 +51,7 @@ void App_Init(void)
 void App_Tick(uint32_t now_ms)
 {
   uint8_t byte;
+  msp_uart_service();
   while (msp_uart_read(&byte)) {
     msp_client_rx_byte(&client, byte, now_ms);
   }
