@@ -11,6 +11,7 @@ target_compile_definitions(
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:STM32H725xx>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:ARM_MATH_CM7>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:BSP_CONFIG_SEEDSTUDIO>"
+    "$<$<COMPILE_LANGUAGE:C>:LV_CONF_INCLUDE_SIMPLE>"
     "$<$<AND:$<NOT:$<CONFIG:Debug>>,$<COMPILE_LANGUAGE:C>>:USE_HAL_DRIVER>"
     "$<$<AND:$<NOT:$<CONFIG:Debug>>,$<COMPILE_LANGUAGE:C>>:STM32H725xx>"
     "$<$<AND:$<NOT:$<CONFIG:Debug>>,$<COMPILE_LANGUAGE:C>>:BSP_CONFIG_SEEDSTUDIO>"
@@ -20,6 +21,8 @@ target_include_directories(
     ${TARGET_NAME} PRIVATE
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:ASM>>:${PROJECT_SOURCE_DIR}/Drivers/CMSIS/DSP/Include>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:${PROJECT_SOURCE_DIR}/App\\Inc>"
+    "$<$<COMPILE_LANGUAGE:C>:${PROJECT_SOURCE_DIR}>"
+    "$<$<COMPILE_LANGUAGE:C>:${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/lvgl>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:${PROJECT_SOURCE_DIR}/Core\\Inc>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:${PROJECT_SOURCE_DIR}/Utilities\\Fonts>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:${PROJECT_SOURCE_DIR}/Utilities\\lcd>"
@@ -90,6 +93,9 @@ target_sources(
     "App\\Src\\msp\\msp_codec.c"
     "App\\Src\\msp\\msp_client.c"
     "App\\Src\\platform\\msp_uart.c"
+    "App\\Src\\platform\\lvgl_port_math.c"
+    "App\\Src\\platform\\lvgl_port.c"
+    "App\\Src\\ui\\ui_app.c"
     "App\\Src\\diagnostics.c"
     "Core\\Src\\ltdc.c"
     "Core\\Src\\app_display.c"
@@ -485,6 +491,12 @@ target_sources(
     "X-CUBE-AI\\App\\network_data.c"
     "X-CUBE-AI\\App\\network.c"
 )
+
+file(GLOB_RECURSE LVGL_SOURCES CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/lvgl/src/*.c"
+)
+set_source_files_properties(${LVGL_SOURCES} PROPERTIES COMPILE_OPTIONS "-Os")
+target_sources(${TARGET_NAME} PRIVATE ${LVGL_SOURCES})
 
 get_target_property(UI_APP_SOURCES ${TARGET_NAME} SOURCES)
 list(FILTER UI_APP_SOURCES EXCLUDE REGEX

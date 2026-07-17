@@ -5,6 +5,7 @@ void test_msp_codec(void);
 void test_msp_client(void);
 void test_vehicle_state(void);
 void test_msp_uart(void);
+void test_lvgl_port_math(void);
 
 int main(void)
 {
@@ -13,6 +14,7 @@ int main(void)
     test_msp_client();
     test_vehicle_state();
     test_msp_uart();
+    test_lvgl_port_math();
     puts("all tests passed");
     return 0;
 }

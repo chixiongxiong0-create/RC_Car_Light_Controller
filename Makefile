@@ -91,7 +91,13 @@ App/Src/vehicle_state.c \
 App/Src/msp/msp_codec.c \
 App/Src/msp/msp_client.c \
 App/Src/platform/msp_uart.c \
+App/Src/platform/lvgl_port_math.c \
+App/Src/platform/lvgl_port.c \
+App/Src/ui/ui_app.c \
 App/Src/diagnostics.c
+
+LVGL_PATH = Middlewares/Third_Party/lvgl
+LVGL_C_SOURCES = $(shell powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/lvgl_sources.ps1)
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \
 Drivers/BSP/Components/LCD/BSP_LCD.c \
@@ -105,7 +111,7 @@ Drivers/BSP/wio_lite_ai/wio_lite_ai_lcd.c \
 Utilities/lcd/stm32_lcd.c
 
 ifdef bsp_config_seedstudio
-C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_SEEDSTUDIO_SCREEN)
+C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_SEEDSTUDIO_SCREEN) $(LVGL_C_SOURCES)
 else
 C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_VITTASCIENCE_SPI_SCREEN)
 endif
@@ -161,7 +167,8 @@ C_DEFS =  \
 -DUSE_HAL_DRIVER \
 -DSTM32H725xx \
 -DARM_MATH_CM7 \
--DBSP_CONFIG_SEEDSTUDIO
+-DBSP_CONFIG_SEEDSTUDIO \
+-DLV_CONF_INCLUDE_SIMPLE
 
 ifndef bsp_config_seedstudio
 C_DEFS := $(filter-out -DBSP_CONFIG_SEEDSTUDIO,$(C_DEFS))
@@ -185,6 +192,8 @@ C_INCLUDES_COMMON =  \
 -IDrivers/CMSIS/Device/ST/STM32H7xx/Include \
 -IDrivers/CMSIS/DSP/Include \
 -IDrivers/CMSIS/Include \
+-I. \
+-IMiddlewares/Third_Party/lvgl \
 
 C_INCLUDES_SEEDSTUDIO_SCREEN = \
 -IDrivers/BSP/Components/LCD
@@ -233,7 +242,9 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 # build the application
 #######################################
 # list of objects
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
+OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o))))
+LVGL_OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(notdir $(LVGL_C_SOURCES:.c=.o))))
+$(LVGL_OBJECTS): CFLAGS += -Os
 vpath %.c $(sort $(dir $(C_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))

@@ -1,0 +1,22 @@
+#ifndef LV_CONF_H
+#define LV_CONF_H
+
+#define LV_COLOR_DEPTH 16
+#define LV_USE_OS 0
+#define LV_USE_STDLIB_MALLOC LV_STDLIB_BUILTIN
+#define LV_MEM_SIZE (96U * 1024U)
+#define LV_DEF_REFR_PERIOD 33
+#define LV_DPI_DEF 130
+#define LV_USE_LOG 0
+#define LV_USE_ASSERT_NULL 1
+#define LV_USE_ASSERT_MALLOC 1
+#define LV_FONT_MONTSERRAT_12 1
+#define LV_FONT_MONTSERRAT_16 1
+#define LV_FONT_MONTSERRAT_24 1
+#define LV_USE_ARC 1
+#define LV_USE_BAR 1
+#define LV_USE_LABEL 1
+#define LV_USE_IMAGE 1
+#define LV_USE_ANIMIMG 1
+
+#endif

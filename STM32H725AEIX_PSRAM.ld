@@ -196,6 +196,20 @@ SECTIONS
   	. = ALIGN(4);
 	*(.externalram)
   } > PSRAM_BUF
+
+  .ltdc_scanout (NOLOAD) :
+  {
+    . = ALIGN(32);
+    *(.ltdc_scanout)
+    . = ALIGN(32);
+  } > PSRAM_BUF
+
+  .lvgl_draw (NOLOAD) :
+  {
+    . = ALIGN(32);
+    *(.lvgl_draw)
+    . = ALIGN(32);
+  } > PSRAM_BUF
 	
   .AI_PSRAM (NOLOAD) :
   {

@@ -13,11 +13,13 @@ add_executable(unit_tests
     test_msp_client.c
     test_vehicle_state.c
     test_msp_uart.c
+    test_lvgl_port_math.c
     ../App/Src/app_time.c
     ../App/Src/msp/msp_codec.c
     ../App/Src/msp/msp_client.c
     ../App/Src/vehicle_state.c
     ../App/Src/platform/msp_uart.c
+    ../App/Src/platform/lvgl_port_math.c
 )
 target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
 target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1)

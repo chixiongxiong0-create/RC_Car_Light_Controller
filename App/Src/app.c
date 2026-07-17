@@ -3,6 +3,10 @@
 #include "diagnostics.h"
 #include "msp/msp_client.h"
 #include "platform/msp_uart.h"
+#ifdef BSP_CONFIG_SEEDSTUDIO
+#include "platform/lvgl_port.h"
+#include "ui/ui_app.h"
+#endif
 #include "usart.h"
 #include "vehicle_state.h"
 
@@ -27,12 +31,6 @@ static void input_manager_tick(uint32_t now_ms, const VehicleState *state)
   (void)state;
 }
 
-static void ui_app_tick(uint32_t now_ms, const VehicleState *state)
-{
-  (void)now_ms;
-  (void)state;
-}
-
 static void led_controller_tick(uint32_t now_ms, const VehicleState *state)
 {
   (void)now_ms;
@@ -46,6 +44,10 @@ void App_Init(void)
   vehicle_state_init();
   msp_client_init(&client, write_msp, on_msp_frame, NULL);
   diagnostics_init();
+#ifdef BSP_CONFIG_SEEDSTUDIO
+  lvgl_port_init();
+  ui_app_init();
+#endif
 }
 
 void App_Tick(uint32_t now_ms)
@@ -58,7 +60,10 @@ void App_Tick(uint32_t now_ms)
   msp_client_tick(&client, now_ms);
   vehicle_state_tick(now_ms);
   input_manager_tick(now_ms, vehicle_state_get());
+#ifdef BSP_CONFIG_SEEDSTUDIO
+  lvgl_port_tick(now_ms);
   ui_app_tick(now_ms, vehicle_state_get());
+#endif
   led_controller_tick(now_ms, vehicle_state_get());
   diagnostics_tick(now_ms);
 }
