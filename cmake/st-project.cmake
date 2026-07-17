@@ -123,7 +123,7 @@ target_sources(
     "Core\\Startup\\startup_stm32h725aeix.s"
     "Drivers\\BSP\\Components\\aps6408\\aps6408.c"
     "Drivers\\BSP\\Components\\ili9341\\ILI9341_STM32_Driver.c"
-    "Drivers\\BSP\\Components\\LCD\\LCD.c"
+    "Drivers\\BSP\\Components\\LCD\\BSP_LCD.c"
     "Drivers\\BSP\\Components\\ov2640\\ov2640.c"
     "Drivers\\BSP\\Components\\W25Q128\\W25Q128.c"
     "Drivers\\BSP\\wio_lite_ai\\wio_lite_ai_bus.c"
@@ -497,12 +497,6 @@ target_sources(
     "X-CUBE-AI\\App\\network_data_params.c"
     "X-CUBE-AI\\App\\network_data.c"
     "X-CUBE-AI\\App\\network.c"
-    "Utilities\\Fonts\\font12.c"
-    "Utilities\\Fonts\\font16.c"
-    "Utilities\\Fonts\\font20.c"
-    "Utilities\\Fonts\\font24.c"
-    "Utilities\\Fonts\\font8.c"
-    "Utilities\\printf\\printf.c"
 )
 
 add_custom_command(
