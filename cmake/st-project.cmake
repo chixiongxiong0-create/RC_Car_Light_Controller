@@ -89,6 +89,8 @@ target_sources(
     "App\\Src\\vehicle_state.c"
     "App\\Src\\msp\\msp_codec.c"
     "App\\Src\\msp\\msp_client.c"
+    "App\\Src\\platform\\msp_uart.c"
+    "App\\Src\\diagnostics.c"
     "Core\\Src\\ltdc.c"
     "Core\\Src\\app_display.c"
     "Core\\Src\\crc.c"

@@ -18,7 +18,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32h7xx_it.h"
-#include <stdio.h>
 /* Private includes ----------------------------------------------------------*/
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,6 +38,7 @@ extern I2C_HandleTypeDef hbus_i2c1;
 extern I2C_HandleTypeDef hbus_i2c4;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 extern SPI_HandleTypeDef hspi1;
+extern UART_HandleTypeDef huart3;
 
 /******************************************************************************/
 /*           Cortex Processor Interruption and Exception Handlers          */
@@ -60,7 +60,6 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
 
-  printf("HardfaultHandler\r\n");
   NVIC_SystemReset();
 
   while (1)
@@ -74,8 +73,6 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
 
-  printf("MemManage_Handler\r\n");
-
   while (1)
   {
   }
@@ -87,8 +84,6 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
 
-  printf("BusFault_Handler\r\n");
-
   while (1)
   {
   }
@@ -99,8 +94,6 @@ void BusFault_Handler(void)
  */
 void UsageFault_Handler(void)
 {
-
-  printf("UsageFault_Handler\r\n");
 
   while (1)
   {
@@ -222,6 +215,14 @@ void SPI1_IRQHandler(void)
   /* USER CODE BEGIN SPI1_IRQn 1 */
 
   /* USER CODE END SPI1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART3 global interrupt.
+  */
+void USART3_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart3);
 }
 
 /**

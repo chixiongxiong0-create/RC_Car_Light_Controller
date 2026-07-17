@@ -89,7 +89,9 @@ App/Src/app.c \
 App/Src/app_time.c \
 App/Src/vehicle_state.c \
 App/Src/msp/msp_codec.c \
-App/Src/msp/msp_client.c
+App/Src/msp/msp_client.c \
+App/Src/platform/msp_uart.c \
+App/Src/diagnostics.c
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \
 Drivers/BSP/Components/LCD/BSP_LCD.c \

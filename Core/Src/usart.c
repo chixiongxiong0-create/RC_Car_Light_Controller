@@ -86,6 +86,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *uartHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+    HAL_NVIC_SetPriority(USART3_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(USART3_IRQn);
   }
 }
 
@@ -103,5 +106,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle)
     PD8     ------> USART3_TX
     */
     HAL_GPIO_DeInit(GPIOD, GPIO_PIN_9 | GPIO_PIN_8);
+
+    HAL_NVIC_DisableIRQ(USART3_IRQn);
   }
 }
