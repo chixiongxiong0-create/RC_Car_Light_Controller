@@ -85,6 +85,7 @@ target_link_options(
 target_sources(
     ${TARGET_NAME} PRIVATE
     "App\\Src\\app.c"
+    "App\\Src\\app_time.c"
     "Core\\Src\\ltdc.c"
     "Core\\Src\\app_display.c"
     "Core\\Src\\crc.c"
