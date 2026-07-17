@@ -472,6 +472,7 @@ RCC.VCOInput2Freq_Value=1000000
 RCC.VCOInput3Freq_Value=5000000
 SPI3.BaudRatePrescaler=SPI_BAUDRATEPRESCALER_32
 SPI3.Direction=SPI_DIRECTION_1LINE
+SPI3.DataSize=SPI_DATASIZE_8BIT
 SPI3.IPParameters=VirtualType,Mode,Direction,BaudRatePrescaler,DataSize,NSSPMode,MasterKeepIOState
 SPI3.MasterKeepIOState=SPI_MASTER_KEEP_IO_STATE_ENABLE
 SPI3.Mode=SPI_MODE_MASTER

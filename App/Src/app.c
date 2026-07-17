@@ -110,3 +110,13 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
     ws2812_port_tx_complete(hspi);
   }
 }
+
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
+{
+  ws2812_port_error(hspi);
+}
+
+void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi)
+{
+  ws2812_port_abort_complete(hspi);
+}

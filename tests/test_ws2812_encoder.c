@@ -3,6 +3,20 @@
 
 #include "platform/ws2812_port.h"
 
+typedef struct {
+    unsigned calls;
+    bool succeed;
+} FakeDma;
+
+static bool fake_start(const uint8_t *data, size_t length, void *ctx)
+{
+    FakeDma *fake = ctx;
+    assert(data != NULL);
+    assert(length >= WS2812_RESET_BYTES);
+    fake->calls++;
+    return fake->succeed;
+}
+
 void test_ws2812_encoder(void)
 {
     const LedRgb pixel = {0x80u, 0x01u, 0xFFu};
@@ -48,4 +62,35 @@ void test_ws2812_encoder(void)
     assert(!ws2812_can_submit(133u, 100u, true));
     assert(ws2812_can_submit(134u, 100u, true));
     assert(ws2812_can_submit(20u, UINT32_MAX - 20u, true));
+
+    int spi3_handle;
+    int spi3_instance;
+    int other_handle;
+    int other_instance;
+    Ws2812Transport transport;
+    FakeDma dma = {0u, true};
+    uint8_t tx[WS2812_TX_BYTES];
+    ws2812_transport_init(&transport, &spi3_handle, &spi3_instance);
+    assert(ws2812_transport_submit(&transport, 0u, strip, 10u, tx, sizeof tx,
+                                   fake_start, &dma));
+    assert(!ws2812_transport_submit(&transport, 34u, strip, 10u, tx, sizeof tx,
+                                    fake_start, &dma));
+    ws2812_transport_error(&transport, &other_handle, &other_instance);
+    assert(!ws2812_transport_submit(&transport, 34u, strip, 10u, tx, sizeof tx,
+                                    fake_start, &dma));
+    ws2812_transport_error(&transport, &spi3_handle, &spi3_instance);
+    assert(ws2812_transport_errors(&transport) == 1u);
+    assert(ws2812_transport_submit(&transport, 34u, strip, 10u, tx, sizeof tx,
+                                   fake_start, &dma));
+    ws2812_transport_abort_complete(&transport, &spi3_handle, &spi3_instance);
+    assert(ws2812_transport_submit(&transport, 68u, strip, 10u, tx, sizeof tx,
+                                   fake_start, &dma));
+
+    ws2812_transport_init(&transport, &spi3_handle, &spi3_instance);
+    dma.succeed = false;
+    assert(!ws2812_transport_submit(&transport, 0u, strip, 10u, tx, sizeof tx,
+                                    fake_start, &dma));
+    dma.succeed = true;
+    assert(ws2812_transport_submit(&transport, 0u, strip, 10u, tx, sizeof tx,
+                                   fake_start, &dma));
 }

@@ -78,3 +78,30 @@ Before claiming hardware success:
 
 No electrical timing, current draw, or target-board behavior is claimed by this
 host/build-only task.
+
+## Review Follow-up
+
+The SPI DMA gate is now a host-testable transport state machine. A matching
+SPI3 error or abort-complete event releases the gate; an event from any other
+handle or peripheral instance has no effect. A failed `HAL_SPI_Transmit_DMA`
+start also restores idle immediately so a later foreground tick can retry.
+
+Inspection of this STM32H7 HAL's `SPI_DMAError()` confirms it closes the
+transfer and assigns `HAL_SPI_STATE_READY` before invoking the user error
+callback. Consequently the callback can safely release the software gate
+without initiating blocking recovery from interrupt context. Matching errors
+are counted for later diagnostics.
+
+Host fakes cover successful submit followed by error recovery, foreign-SPI
+error isolation, DMA-start failure retry, and abort-complete recovery. The IOC
+now explicitly records `SPI3.DataSize=SPI_DATASIZE_8BIT`.
+
+Post-review verification:
+
+```text
+Host CTest: 3/3 passed
+CMake Debug: text=346120 data=1864; Flash=347984 bytes
+384 KiB headroom=45232 bytes
+Make Debug: text=332276 data=564; Flash=332840 bytes
+git diff --check: clean
+```
