@@ -70,7 +70,7 @@ static bool valid_length(const MspFrame *frame)
     case MSP_ANALOG:
         return frame->length >= 7u;
     case MSP_RAW_GPS:
-        return frame->length >= 16u;
+        return frame->length >= 18u;
     case MSP_STATUS:
         return frame->length >= 11u;
     default:
