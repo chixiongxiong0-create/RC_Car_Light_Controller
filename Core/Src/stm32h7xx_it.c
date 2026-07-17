@@ -138,16 +138,6 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
- * @brief  This function handles EXTI0_IRQ Handler.
- * @param  None
- * @retval None
- */
-void EXTI1_IRQHandler(void)
-{
-  HAL_EXTI_IRQHandler(&hpb_exti[BUTTON_USER1]);
-}
-
-/**
   * @brief This function handles I2C1 event interrupt.
   */
 void I2C1_EV_IRQHandler(void)
