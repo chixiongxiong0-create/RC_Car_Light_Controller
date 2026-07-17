@@ -21,6 +21,12 @@ typedef struct {
     MspFrame frame;
 } MspCodec;
 
+typedef enum {
+    MSP_CODEC_INCOMPLETE = 0,
+    MSP_CODEC_FRAME,
+    MSP_CODEC_CHECKSUM_ERROR
+} MspCodecFeedResult;
+
 void msp_codec_reset(MspCodec *codec);
-bool msp_codec_feed(MspCodec *codec, uint8_t byte, MspFrame *out);
+MspCodecFeedResult msp_codec_feed(MspCodec *codec, uint8_t byte, MspFrame *out);
 size_t msp_v1_encode_request(uint8_t command, uint8_t out[6]);

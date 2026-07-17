@@ -62,7 +62,12 @@ void msp_client_init(MspClient *client, MspWriteFn write,
 void msp_client_rx_byte(MspClient *client, uint8_t byte, uint32_t now_ms)
 {
     MspFrame frame;
-    if (!msp_codec_feed(&client->codec, byte, &frame)) {
+    const MspCodecFeedResult result = msp_codec_feed(&client->codec, byte, &frame);
+    if (result == MSP_CODEC_CHECKSUM_ERROR) {
+        ++client->checksum_errors;
+        return;
+    }
+    if (result != MSP_CODEC_FRAME) {
         return;
     }
 

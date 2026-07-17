@@ -27,7 +27,7 @@ static void restart_or_reset(MspCodec *codec, uint8_t byte)
     }
 }
 
-bool msp_codec_feed(MspCodec *codec, uint8_t byte, MspFrame *out)
+MspCodecFeedResult msp_codec_feed(MspCodec *codec, uint8_t byte, MspFrame *out)
 {
     switch (codec->state) {
     case WAIT_DOLLAR:
@@ -79,13 +79,13 @@ bool msp_codec_feed(MspCodec *codec, uint8_t byte, MspFrame *out)
             *out = codec->frame;
         }
         msp_codec_reset(codec);
-        return valid;
+        return valid ? MSP_CODEC_FRAME : MSP_CODEC_CHECKSUM_ERROR;
     }
     default:
         msp_codec_reset(codec);
         break;
     }
-    return false;
+    return MSP_CODEC_INCOMPLETE;
 }
 
 size_t msp_v1_encode_request(uint8_t command, uint8_t out[6])
