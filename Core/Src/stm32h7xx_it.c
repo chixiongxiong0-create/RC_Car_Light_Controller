@@ -39,6 +39,8 @@ extern I2C_HandleTypeDef hbus_i2c4;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 extern SPI_HandleTypeDef hspi1;
 extern UART_HandleTypeDef huart3;
+extern DMA_HandleTypeDef hdma_spi3_tx;
+extern SPI_HandleTypeDef hspi3;
 
 /******************************************************************************/
 /*           Cortex Processor Interruption and Exception Handlers          */
@@ -191,6 +193,11 @@ void DMA1_Stream0_IRQHandler(void)
   /* USER CODE END DMA1_Stream0_IRQn 1 */
 }
 
+void DMA1_Stream1_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&hdma_spi3_tx);
+}
+
 /**
   * @brief This function handles SPI1 global interrupt.
   */
@@ -205,6 +212,11 @@ void SPI1_IRQHandler(void)
   /* USER CODE BEGIN SPI1_IRQn 1 */
 
   /* USER CODE END SPI1_IRQn 1 */
+}
+
+void SPI3_IRQHandler(void)
+{
+  HAL_SPI_IRQHandler(&hspi3);
 }
 
 /**

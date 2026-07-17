@@ -44,6 +44,7 @@ Core/Src/gpio.c \
 Core/Src/crc.c \
 Core/Src/dma.c \
 Core/Src/octospi.c \
+Core/Src/spi.c \
 Core/Src/tim.c \
 Core/Src/usart.c \
 Core/Src/sysmem.c \
@@ -105,7 +106,9 @@ App/Src/ui/screen_face.c \
 App/Src/ui/showcase_model.c \
 App/Src/ui/screen_showcase.c \
 App/Src/ui/dashboard_format.c \
-App/Src/diagnostics.c
+App/Src/diagnostics.c \
+App/Src/led/led_controller.c \
+App/Src/platform/ws2812_port.c
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \
 Drivers/BSP/Components/LCD/BSP_LCD.c \
@@ -251,6 +254,10 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 #######################################
 # list of objects
 OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o))))
+APP_OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES_APP:.c=.o))))
+CORE_OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(patsubst %.c,%.o,$(notdir $(filter Core/Src/%.c,$(C_SOURCES_COMMON))))))
+SUPPORT_OBJECTS = $(sort $(addprefix $(BUILD_DIR)/,$(patsubst %.c,%.o,$(notdir $(filter Drivers/%.c,$(C_SOURCES_COMMON))))))
+$(APP_OBJECTS) $(CORE_OBJECTS) $(SUPPORT_OBJECTS): CFLAGS += -Os
 vpath %.c $(sort $(dir $(C_SOURCES)))
 
 ifdef bsp_config_seedstudio

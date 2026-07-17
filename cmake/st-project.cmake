@@ -52,6 +52,8 @@ target_include_directories(
 
 target_compile_options(
     ${TARGET_NAME} PRIVATE
+    "$<$<COMPILE_LANGUAGE:C>:-ffunction-sections>"
+    "$<$<COMPILE_LANGUAGE:C>:-fdata-sections>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:ASM>>:-g3>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C>>:-g3>"
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-g3>"
@@ -108,6 +110,8 @@ target_sources(
     "App\\Src\\ui\\screen_showcase.c"
     "App\\Src\\ui\\dashboard_format.c"
     "App\\Src\\diagnostics.c"
+    "App\\Src\\led\\led_controller.c"
+    "App\\Src\\platform\\ws2812_port.c"
     "Core\\Src\\ltdc.c"
     "Core\\Src\\app_display.c"
     "Core\\Src\\crc.c"
@@ -116,6 +120,7 @@ target_sources(
     "Core\\Src\\i2c.c"
     "Core\\Src\\main.c"
     "Core\\Src\\octospi.c"
+    "Core\\Src\\spi.c"
     "Core\\Src\\stm32h7xx_hal_msp.c"
     "Core\\Src\\stm32h7xx_it.c"
     "Core\\Src\\syscalls.c"
@@ -510,6 +515,9 @@ set_source_files_properties(${LVGL_SOURCES} PROPERTIES COMPILE_OPTIONS "-Os")
 target_sources(${TARGET_NAME} PRIVATE ${LVGL_SOURCES})
 
 get_target_property(UI_APP_SOURCES ${TARGET_NAME} SOURCES)
+set(APP_OPT_SOURCES ${UI_APP_SOURCES})
+list(FILTER APP_OPT_SOURCES INCLUDE REGEX "^(App|Core|Drivers)[/\\\\].*\\.c$")
+set_source_files_properties(${APP_OPT_SOURCES} PROPERTIES COMPILE_OPTIONS "-Os")
 list(FILTER UI_APP_SOURCES EXCLUDE REGEX
     "(X-CUBE-AI|STM32_ImageProcessing_Library|Drivers[/\\\\]CMSIS[/\\\\]DSP[/\\\\]Source|ov2640|wio_lite_ai_camera|wio_lite_ai_(display_spi|lcd)|ILI9341_STM32_Driver|Utilities[/\\\\]lcd|stm32h7xx_hal_dcmi|vittascience_i2c|Core[/\\\\]Src[/\\\\](app_display|dcmi|i2c)\\.c)"
 )

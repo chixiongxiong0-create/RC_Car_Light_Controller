@@ -4,7 +4,6 @@
 #include "input_manager.h"
 #include "ui/screen_dashboard.h"
 #include "ui/screen_face.h"
-#include "ui/low_battery_policy.h"
 #include "ui/screen_showcase.h"
 #include "ui/ui_theme.h"
 
@@ -13,7 +12,6 @@ static lv_obj_t *face;
 static lv_obj_t *showcase;
 static lv_obj_t *shutter;
 static lv_obj_t *shutter_edge;
-static LowBatteryPolicy battery_policy;
 static PageTransition transition;
 
 static lv_obj_t *page_object(UiPage page)
@@ -48,7 +46,6 @@ void ui_app_init(void)
     dashboard = screen_dashboard_create();
     face = screen_face_create();
     showcase = screen_showcase_create();
-    low_battery_policy_init(&battery_policy, APP_BATTERY_CELL_COUNT);
     page_transition_init(&transition, input_manager_page(), 0u);
     lv_screen_load(page_object(page_transition_visible_page(&transition)));
 
@@ -69,7 +66,7 @@ void ui_app_init(void)
     lv_obj_add_flag(shutter_edge, LV_OBJ_FLAG_HIDDEN);
 }
 
-void ui_app_tick(uint32_t now_ms, const VehicleState *state)
+void ui_app_tick(uint32_t now_ms, const VehicleState *state, bool low_battery)
 {
     if (dashboard == NULL || state == NULL) {
         return;
@@ -86,8 +83,6 @@ void ui_app_tick(uint32_t now_ms, const VehicleState *state)
     if (visible == UI_PAGE_DASHBOARD) {
         screen_dashboard_update(state);
     } else if (visible == UI_PAGE_FACE) {
-        const bool low_battery = low_battery_policy_update(
-            &battery_policy, state->battery_v, state->battery_v > 0.0f);
         screen_face_update(now_ms, state, low_battery);
     } else {
         screen_showcase_update(now_ms, state);
