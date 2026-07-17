@@ -46,6 +46,7 @@ typedef struct {
     UiPage requested_page;
     PageTransitionPhase phase;
     uint32_t phase_epoch_ms;
+    uint16_t phase_start_cover;
 } PageTransition;
 
 void page_transition_init(PageTransition *transition, UiPage page,

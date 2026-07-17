@@ -50,7 +50,7 @@ void ui_app_init(void)
     showcase = screen_showcase_create();
     low_battery_policy_init(&battery_policy, APP_BATTERY_CELL_COUNT);
     page_transition_init(&transition, input_manager_page(), 0u);
-    lv_screen_load(dashboard);
+    lv_screen_load(page_object(page_transition_visible_page(&transition)));
 
     shutter = lv_obj_create(lv_layer_top());
     lv_obj_remove_flag(shutter, LV_OBJ_FLAG_SCROLLABLE);

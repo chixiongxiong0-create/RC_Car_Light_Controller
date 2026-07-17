@@ -128,6 +128,40 @@ static void test_transition_wrap_and_noop(void)
     assert(page_transition_phase(&transition) == PAGE_TRANSITION_IDLE);
 }
 
+static void test_transition_latest_cancel_and_continuity(void)
+{
+    PageTransition transition;
+    page_transition_init(&transition, UI_PAGE_DASHBOARD, 0u);
+    page_transition_request(&transition, UI_PAGE_FACE, 10u);
+    page_transition_request(&transition, UI_PAGE_SHOWCASE, 60u);
+    assert(page_transition_cover_permille(&transition, 60u) == 500u);
+    page_transition_tick(&transition, 110u);
+    assert(page_transition_visible_page(&transition) == UI_PAGE_SHOWCASE);
+
+    page_transition_tick(&transition, 150u);
+    assert(page_transition_cover_permille(&transition, 150u) == 600u);
+    page_transition_request(&transition, UI_PAGE_FACE, 150u);
+    assert(page_transition_cover_permille(&transition, 150u) == 600u);
+    assert(page_transition_cover_permille(&transition, 200u) == 800u);
+    page_transition_tick(&transition, 250u);
+    assert(page_transition_visible_page(&transition) == UI_PAGE_FACE);
+
+    page_transition_tick(&transition, 290u);
+    assert(page_transition_cover_permille(&transition, 290u) == 600u);
+    page_transition_request(&transition, UI_PAGE_FACE, 290u);
+    assert(page_transition_cover_permille(&transition, 290u) == 600u);
+    assert(page_transition_phase(&transition) == PAGE_TRANSITION_RETRACT);
+
+    page_transition_init(&transition, UI_PAGE_DASHBOARD, 1000u);
+    page_transition_request(&transition, UI_PAGE_FACE, 1010u);
+    assert(page_transition_cover_permille(&transition, 1060u) == 500u);
+    page_transition_request(&transition, UI_PAGE_DASHBOARD, 1060u);
+    assert(page_transition_cover_permille(&transition, 1060u) == 500u);
+    page_transition_tick(&transition, 1160u);
+    assert(page_transition_phase(&transition) == PAGE_TRANSITION_IDLE);
+    assert(page_transition_visible_page(&transition) == UI_PAGE_DASHBOARD);
+}
+
 void test_showcase_model(void)
 {
     test_idle_rotation();
@@ -136,4 +170,5 @@ void test_showcase_model(void)
     test_tick_wrap();
     test_transition_boundaries_and_latest_request();
     test_transition_wrap_and_noop();
+    test_transition_latest_cancel_and_continuity();
 }

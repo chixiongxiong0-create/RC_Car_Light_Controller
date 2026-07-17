@@ -25,6 +25,7 @@ static bool touch_available;
 static bool touch_pending;
 static UiPage touch_page;
 static bool brightness_requested;
+static bool aux_authoritative;
 
 static AuxZone aux_zone(float value)
 {
@@ -81,6 +82,7 @@ void input_manager_init(void)
     touch_pending = false;
     touch_page = UI_PAGE_DASHBOARD;
     brightness_requested = false;
+    aux_authoritative = false;
 }
 
 void input_manager_set_button(bool pressed, uint32_t now_ms)
@@ -120,20 +122,31 @@ void input_manager_tick(uint32_t now_ms, const VehicleState *state)
                 brightness_requested = true;
             } else if (duration_ms >= BUTTON_DEBOUNCE_MS &&
                        duration_ms <= BUTTON_CYCLE_MAX_MS) {
-                current_page = (UiPage)(((unsigned)current_page + 1u) % 3u);
+                if (!aux_authoritative) {
+                    current_page = (UiPage)(((unsigned)current_page + 1u) % 3u);
+                }
             }
         }
     }
 
-    if (touch_pending) {
+    if (touch_pending && !aux_authoritative) {
         current_page = touch_page;
-        touch_pending = false;
     }
+    touch_pending = false;
 
     if (state != NULL) {
         const AuxZone next_zone = aux_zone(state->aux_page);
-        if (next_zone != current_zone) {
+        if (state->link == LINK_LOST) {
+            aux_authoritative = false;
+        } else if (current_zone == AUX_ZONE_UNKNOWN) {
             current_zone = next_zone;
+            if (next_zone != AUX_ZONE_MID) {
+                aux_authoritative = true;
+                current_page = page_for_zone(next_zone);
+            }
+        } else if (next_zone != current_zone) {
+            current_zone = next_zone;
+            aux_authoritative = true;
             current_page = page_for_zone(next_zone);
         }
     }

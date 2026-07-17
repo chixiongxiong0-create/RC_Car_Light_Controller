@@ -71,3 +71,25 @@ Flash (text + data)=326208 bytes
   temporary include-path experiment was removed; Task 9 does not alter that
   unrelated Release configuration. The required CMake Debug and Make builds
   both pass.
+
+## Review Follow-up
+
+The focused review fixes were implemented test-first:
+
+- startup AUX mid leaves local button/touch fallback usable, while startup
+  low/high is treated as an explicit A/C selection and takes authority;
+- a later AUX zone change takes authority and suppresses local page overrides;
+- `LINK_LOST` releases authority, and recovery does not replay the old zone;
+- cover-phase latest request, cover cancellation, and retract reversal preserve
+  shutter coverage continuously;
+- startup screen loading now uses the transition controller's visible page.
+
+Post-review verification:
+
+```text
+Host CTest: 3/3 passed
+CMake Debug: text=369608 data=1880; Flash=371488 bytes
+384 KiB headroom=21728 bytes (21.2 KiB), 1248 bytes above the 20 KiB gate
+Make -Os: text=325756 data=564; Flash=326320 bytes
+git diff --check: clean
+```

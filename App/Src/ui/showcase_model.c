@@ -69,11 +69,13 @@ void page_transition_init(PageTransition *transition, UiPage page,
     transition->requested_page = page;
     transition->phase = PAGE_TRANSITION_IDLE;
     transition->phase_epoch_ms = now_ms;
+    transition->phase_start_cover = 0u;
 }
 
 void page_transition_request(PageTransition *transition, UiPage page,
                              uint32_t now_ms)
 {
+    const uint16_t cover = page_transition_cover_permille(transition, now_ms);
     if (page > UI_PAGE_SHOWCASE) {
         return;
     }
@@ -82,12 +84,14 @@ void page_transition_request(PageTransition *transition, UiPage page,
         if (transition->phase == PAGE_TRANSITION_COVER) {
             transition->phase = PAGE_TRANSITION_RETRACT;
             transition->phase_epoch_ms = now_ms;
+            transition->phase_start_cover = cover;
         }
         return;
     }
     if (transition->phase != PAGE_TRANSITION_COVER) {
         transition->phase = PAGE_TRANSITION_COVER;
         transition->phase_epoch_ms = now_ms;
+        transition->phase_start_cover = cover;
     }
 }
 
@@ -98,10 +102,12 @@ void page_transition_tick(PageTransition *transition, uint32_t now_ms)
         transition->visible_page = transition->requested_page;
         transition->phase = PAGE_TRANSITION_RETRACT;
         transition->phase_epoch_ms = now_ms;
+        transition->phase_start_cover = 1000u;
     } else if (transition->phase == PAGE_TRANSITION_RETRACT &&
                elapsed(now_ms, transition->phase_epoch_ms) >= PAGE_SHUTTER_MS) {
         transition->phase = PAGE_TRANSITION_IDLE;
         transition->phase_epoch_ms = now_ms;
+        transition->phase_start_cover = 0u;
         if (transition->requested_page != transition->visible_page) {
             transition->phase = PAGE_TRANSITION_COVER;
         }
@@ -122,6 +128,7 @@ uint16_t page_transition_cover_permille(const PageTransition *transition,
                                         uint32_t now_ms)
 {
     uint32_t amount;
+    uint32_t cover;
     if (transition->phase == PAGE_TRANSITION_IDLE) {
         return 0u;
     }
@@ -129,8 +136,12 @@ uint16_t page_transition_cover_permille(const PageTransition *transition,
     if (amount > PAGE_SHUTTER_MS) {
         amount = PAGE_SHUTTER_MS;
     }
-    if (transition->phase == PAGE_TRANSITION_RETRACT) {
-        amount = PAGE_SHUTTER_MS - amount;
+    if (transition->phase == PAGE_TRANSITION_COVER) {
+        cover = transition->phase_start_cover +
+                ((1000u - transition->phase_start_cover) * amount) / PAGE_SHUTTER_MS;
+    } else {
+        cover = transition->phase_start_cover -
+                (transition->phase_start_cover * amount) / PAGE_SHUTTER_MS;
     }
-    return (uint16_t)(amount * 1000u / PAGE_SHUTTER_MS);
+    return (uint16_t)cover;
 }
