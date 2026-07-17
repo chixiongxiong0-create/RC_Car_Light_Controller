@@ -20,5 +20,6 @@ add_executable(unit_tests
     ../App/Src/platform/msp_uart.c
 )
 target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
+target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1)
 
 add_test(NAME unit_tests COMMAND unit_tests)

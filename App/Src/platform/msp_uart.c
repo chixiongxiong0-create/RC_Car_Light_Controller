@@ -22,13 +22,36 @@ static volatile bool rx_armed;
 static volatile bool rx_recovery_requested;
 static volatile bool tx_busy;
 
+#ifdef MSP_UART_HOST_TEST
+extern uint32_t msp_uart_test_critical_enter(void);
+extern void msp_uart_test_critical_exit(uint32_t saved_primask);
+#define critical_enter msp_uart_test_critical_enter
+#define critical_exit msp_uart_test_critical_exit
+#else
+static uint32_t critical_enter(void)
+{
+    const uint32_t saved_primask = __get_PRIMASK();
+    __disable_irq();
+    __DMB();
+    return saved_primask;
+}
+
+static void critical_exit(uint32_t saved_primask)
+{
+    __DMB();
+    __set_PRIMASK(saved_primask);
+}
+#endif
+
 static bool arm_receive_once(void)
 {
+    const uint32_t saved_primask = critical_enter();
     const bool armed = HAL_UART_Receive_IT(&huart3, &rx_byte, 1u) == HAL_OK;
     rx_armed = armed;
     if (!armed) {
         ++rx_arm_failures;
     }
+    critical_exit(saved_primask);
     return armed;
 }
 

@@ -16,6 +16,10 @@ static const uint8_t *pending_tx;
 static uint16_t pending_tx_length;
 static HAL_StatusTypeDef receive_result;
 static HAL_StatusTypeDef transmit_result;
+static bool inject_rx_before_receive_returns;
+static bool injecting_rx;
+static bool fake_irq_disabled;
+static bool deferred_rx_callback;
 static int usart3_token;
 static int other_uart_token;
 void *const fake_usart3_instance = &usart3_token;
@@ -31,6 +35,19 @@ HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *uart,
     assert(length == 1u);
     ++rx_arms;
     armed_rx = receive_result == HAL_OK ? data : NULL;
+    if (receive_result == HAL_OK && inject_rx_before_receive_returns && !injecting_rx) {
+        injecting_rx = true;
+        inject_rx_before_receive_returns = false;
+        *data = 0x6au;
+        if (fake_irq_disabled) {
+            deferred_rx_callback = true;
+        } else {
+            receive_result = HAL_BUSY;
+            HAL_UART_RxCpltCallback(&huart3);
+            receive_result = HAL_OK;
+        }
+        injecting_rx = false;
+    }
     return receive_result;
 }
 
@@ -52,6 +69,24 @@ HAL_StatusTypeDef HAL_UART_AbortReceive(UART_HandleTypeDef *uart)
     return HAL_OK;
 }
 
+uint32_t msp_uart_test_critical_enter(void)
+{
+    const uint32_t saved = fake_irq_disabled ? 1u : 0u;
+    fake_irq_disabled = true;
+    return saved;
+}
+
+void msp_uart_test_critical_exit(uint32_t saved_primask)
+{
+    fake_irq_disabled = saved_primask != 0u;
+    if (!fake_irq_disabled && deferred_rx_callback) {
+        deferred_rx_callback = false;
+        receive_result = HAL_BUSY;
+        HAL_UART_RxCpltCallback(&huart3);
+        receive_result = HAL_OK;
+    }
+}
+
 static void reset_without_init(void)
 {
     huart3.Instance = USART3;
@@ -63,6 +98,10 @@ static void reset_without_init(void)
     pending_tx_length = 0u;
     receive_result = HAL_OK;
     transmit_result = HAL_OK;
+    inject_rx_before_receive_returns = false;
+    injecting_rx = false;
+    fake_irq_disabled = false;
+    deferred_rx_callback = false;
 }
 
 static void reset_fixture(void)
@@ -212,6 +251,23 @@ static void test_callbacks_ignore_other_uart(void)
     HAL_UART_TxCpltCallback(&huart3);
 }
 
+static void test_nested_completion_failure_cannot_hide_unarmed_rx(void)
+{
+    uint8_t byte = 0u;
+    reset_without_init();
+    inject_rx_before_receive_returns = true;
+    msp_uart_init();
+
+    assert(rx_arms == 2u);
+    assert(msp_uart_rx_arm_failures() == 1u);
+    assert(msp_uart_read(&byte) && byte == 0x6au);
+
+    msp_uart_service();
+    assert(rx_arms == 3u);
+    receive_byte(0x6bu);
+    assert(msp_uart_read(&byte) && byte == 0x6bu);
+}
+
 void test_msp_uart(void)
 {
     test_receive_is_armed_and_bytes_are_read_in_order();
@@ -223,4 +279,5 @@ void test_msp_uart(void)
     test_completion_rearm_failure_recovers_from_service();
     test_error_callback_aborts_then_service_recovers();
     test_callbacks_ignore_other_uart();
+    test_nested_completion_failure_cannot_hide_unarmed_rx();
 }
