@@ -1,9 +1,11 @@
 #include "ui/low_battery_policy.h"
 
-void low_battery_policy_init(LowBatteryPolicy *policy)
+void low_battery_policy_init(LowBatteryPolicy *policy, uint8_t configured_cells)
 {
     if (policy != 0) {
-        policy->cell_count = 0u;
+        policy->cell_count = configured_cells >= BATTERY_MIN_CELLS &&
+                             configured_cells <= BATTERY_MAX_CELLS ?
+                             configured_cells : 0u;
         policy->low = false;
     }
 }
@@ -14,21 +16,12 @@ bool low_battery_policy_update(LowBatteryPolicy *policy, float battery_v,
     if (policy == 0) {
         return false;
     }
-    if (!voltage_valid || !(battery_v >= BATTERY_MIN_INFER_V) ||
-        battery_v > BATTERY_CELL_MAX_V * BATTERY_MAX_CELLS) {
+    if (policy->cell_count == 0u) {
+        policy->low = false;
+        return false;
+    }
+    if (!voltage_valid || !(battery_v > 0.0f)) {
         return policy->low;
-    }
-
-    uint8_t inferred = BATTERY_MIN_CELLS;
-    while (inferred <= BATTERY_MAX_CELLS &&
-           battery_v > BATTERY_CELL_MAX_V * inferred) {
-        ++inferred;
-    }
-    if (inferred > BATTERY_MAX_CELLS) {
-        return policy->low;
-    }
-    if (inferred > policy->cell_count) {
-        policy->cell_count = inferred;
     }
 
     const float per_cell_v = battery_v / policy->cell_count;
@@ -40,4 +33,14 @@ bool low_battery_policy_update(LowBatteryPolicy *policy, float battery_v,
         policy->low = true;
     }
     return policy->low;
+}
+
+bool low_battery_policy_is_configured(const LowBatteryPolicy *policy)
+{
+    return policy != 0 && policy->cell_count != 0u;
+}
+
+uint8_t low_battery_policy_cell_count(const LowBatteryPolicy *policy)
+{
+    return policy != 0 ? policy->cell_count : 0u;
 }

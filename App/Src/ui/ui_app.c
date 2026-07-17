@@ -1,5 +1,6 @@
 #include "ui/ui_app.h"
 
+#include "app_config.h"
 #include "ui/screen_dashboard.h"
 #include "ui/screen_face.h"
 #include "ui/low_battery_policy.h"
@@ -12,7 +13,7 @@ void ui_app_init(void)
 {
     dashboard = screen_dashboard_create();
     face = screen_face_create();
-    low_battery_policy_init(&battery_policy);
+    low_battery_policy_init(&battery_policy, APP_BATTERY_CELL_COUNT);
     lv_obj_add_flag(face, LV_OBJ_FLAG_HIDDEN);
     lv_screen_load(dashboard);
 }
