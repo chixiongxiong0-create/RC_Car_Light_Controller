@@ -86,6 +86,7 @@ target_sources(
     ${TARGET_NAME} PRIVATE
     "App\\Src\\app.c"
     "App\\Src\\app_time.c"
+    "App\\Src\\vehicle_state.c"
     "App\\Src\\msp\\msp_codec.c"
     "App\\Src\\msp\\msp_client.c"
     "Core\\Src\\ltdc.c"

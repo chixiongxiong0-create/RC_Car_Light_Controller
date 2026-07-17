@@ -11,9 +11,11 @@ add_executable(unit_tests
     test_app_time.c
     test_msp_codec.c
     test_msp_client.c
+    test_vehicle_state.c
     ../App/Src/app_time.c
     ../App/Src/msp/msp_codec.c
     ../App/Src/msp/msp_client.c
+    ../App/Src/vehicle_state.c
 )
 target_include_directories(unit_tests PRIVATE ../App/Inc)
 
