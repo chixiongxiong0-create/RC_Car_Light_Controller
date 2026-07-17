@@ -33,12 +33,7 @@ extern "C"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "wio_lite_ai.h"
-#include "wio_lite_ai_camera.h"
 #include "wio_lite_ai_ospi.h"
-
-#include "ai_interface.h"
-#include "network.h"
-//#include "ai_model_config.h"
 /* USER CODE END Includes */
 
 
@@ -54,15 +49,8 @@ extern "C"
 #define ITCMMEM __attribute__((section(".itcmram")))
 #define DMA_BUFFER __attribute__((section(".dma_buffer")))
 
-// Tips : macro for IPL
-#define NN_OUTPUT_CLASS_NUMBER AI_NET_OUTPUT_SIZE
-
-#define AI_INPUT_H AI_NETWORK_IN_1_HEIGHT
-#define AI_INPUT_W AI_NETWORK_IN_1_WIDTH
-#define IPL_BUFFER_SIZE 0x500
-
 /****************************/
-/***CAMERA related defines***/
+/***Display related defines**/
 /****************************/
 #define QVGA_RES_WIDTH  320
 #define QVGA_RES_HEIGHT 240
@@ -100,19 +88,6 @@ extern "C"
 #define LCD_RES_HEIGHT QVGA_RES_HEIGHT
 #define LCD_BPP RGB_565_BPP
 #define LCD_FRAME_BUFFER_SIZE (LCD_RES_WIDTH * LCD_RES_HEIGHT * LCD_BPP)
-
-/******************************/
-/****Buffers size definition***/
-/******************************/
-#if ASPECT_RATIO_MODE == ASPECT_RATIO_PADDING
-  #define CAM_FRAME_BUFFER_SIZE (CAM_RES_WITH_BORDERS * CAM_RES_WITH_BORDERS * RGB_565_BPP)
-#else
-  #define CAM_FRAME_BUFFER_SIZE (CAM_RES_WIDTH * CAM_RES_HEIGHT * RGB_565_BPP)
-#endif
-#define RESCALED_FRAME_BUFFER_SIZE (AI_NETWORK_WIDTH * AI_NETWORK_HEIGHT * RGB_565_BPP)
-#define AI_INPUT_BUFFER_SIZE AI_NET_INPUT_SIZE_BYTES
-#define AI_OUTPUT_BUFFER_SIZE AI_NET_OUTPUT_SIZE_BYTES 
-#define AI_ACTIVATION_BUFFER_SIZE AI_ACTIVATION_SIZE_BYTES
 
 /*******************/
 /****BSP defines****/
@@ -161,57 +136,6 @@ extern "C"
 #define ILI9341_DC_GPIO_Port    GPIOA
 #endif
 #endif
-
-/* Exported types ------------------------------------------------------------*/
-typedef struct
-{ 
-  bool mode_continuous;
-  bool do_ai;
-  volatile bool new_data_available;
-  volatile bool buffer_tmp_in_use;
-
-  /**NN Output**/
-  uint32_t nn_inference_time;
-  char const* nn_top1_output_class_name;
-  float nn_top1_output_class_proba;
-  int ranking[NN_OUTPUT_CLASS_NUMBER];
-  
-  /**Camera context**/
-  // volatile uint8_t new_frame_ready;
-  // uint32_t mirror_flip;
-  // uint32_t cropping_enable;
-  
-  /**Pre-Processing context**/
-  // uint32_t red_blue_swap;
-  // uint32_t PixelFormatConv;
- 
-  /**Display context**/
-  // volatile uint32_t lcd_sync;
-  
-  /**Utility context**/
-  uint32_t Tinf_start;
-  uint32_t Tinf_stop;
-  uint32_t Tfps_start;
-  uint32_t Tfps_stop;
-  
-  /**AI NN context**/
-  // uint8_t* lut;
-  // uint32_t nn_input_type; 
-  // uint32_t nn_output_type;
-  const char** nn_output_labels;
-  
-  /**Application buffers**/
-  void* nn_output_buffer;
-  void* nn_input_buffer;
-  void** activation_buffer;
-  // uint8_t* rescaled_image_buffer;
-  uint8_t* camera_capture_buffer;
-  uint8_t* camera_capture_buffer_no_borders;
-  // uint8_t *lcd_frame_read_buff;
-  uint8_t *lcd_frame_buff; /* Only one buffer is used for output to save RAM */
-  
-}AppConfig_TypeDef;
-
 
   /* Exported functions prototypes ---------------------------------------------*/
   void Error_Handler(void);

@@ -39,33 +39,21 @@ endif
 ######################################
 # C sources
 C_SOURCES_COMMON =  \
-X-CUBE-AI/App/ai_interface.c \
-X-CUBE-AI/App/ai_utils.c \
-X-CUBE-AI/App/network.c \
-X-CUBE-AI/App/network_data.c \
-X-CUBE-AI/App/network_data_params.c \
-X-CUBE-AI/App/app_x-cube-ai.c \
-X-CUBE-AI/App/app_utility.c \
-X-CUBE-AI/App/app_network.c \
 Core/Src/main.c \
 Core/Src/gpio.c \
-Core/Src/i2c.c \
 Core/Src/crc.c \
 Core/Src/dma.c \
 Core/Src/octospi.c \
 Core/Src/tim.c \
 Core/Src/usart.c \
-Core/Src/vittascience_i2c.c \
 Core/Src/sysmem.c \
 Core/Src/syscalls.c \
 Core/Src/system_stm32h7xx.c  \
 Core/Src/stm32h7xx_it.c \
 Core/Src/stm32h7xx_hal_msp.c \
 Drivers/BSP/Components/aps6408/aps6408.c \
-Drivers/BSP/Components/ov2640/ov2640.c \
 Drivers/BSP/Components/W25Q128/W25Q128.c \
 Drivers/BSP/wio_lite_ai/wio_lite_ai_bus.c \
-Drivers/BSP/wio_lite_ai/wio_lite_ai_camera.c \
 Drivers/BSP/wio_lite_ai/wio_lite_ai_ospi.c \
 Drivers/BSP/wio_lite_ai/wio_lite_ai.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c \
@@ -87,7 +75,6 @@ Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c \
-Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dcmi.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_ltdc.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_ltdc_ex.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_ospi.c \
@@ -95,61 +82,10 @@ Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c \
-Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/apriltag.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/array.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/binary.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/blob.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/clahe.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/collections.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/draw.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/edge.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/filter.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/fmath.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/haar.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/hough.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/imlib.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/integral.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/integral_mw.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/jdata_conf.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/lab_tab.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/line.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/matd.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/mathop.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/point.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/pool.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/rectangle.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/sincos_tab.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stats.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_binary.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_blob.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_convert.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_drawing.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_edge.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_equalization.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_filtering.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_find_pixels.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_geometry.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_hough.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_image_io.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_image_io_jpg_sw.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_integral.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_masking.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_math_op.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_mem_alloc.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_morph_op.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_object_det.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_point.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_rect.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_resize.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_rotation.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_stats.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_template.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/stm32ipl_warping.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/template.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/umm_malloc.c \
-Middlewares/ST/STM32_ImageProcessing_Library/Src/xyz_tab.c \
+Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
+
+C_SOURCES_APP = \
+App/Src/app.c
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \
 Drivers/BSP/Components/LCD/BSP_LCD.c \
@@ -163,9 +99,9 @@ Drivers/BSP/wio_lite_ai/wio_lite_ai_lcd.c \
 Utilities/lcd/stm32_lcd.c
 
 ifdef bsp_config_seedstudio
-C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_SEEDSTUDIO_SCREEN)
+C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_SEEDSTUDIO_SCREEN)
 else
-C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_VITTASCIENCE_SPI_SCREEN)
+C_SOURCES = $(C_SOURCES_COMMON) $(C_SOURCES_APP) $(C_SOURCES_VITTASCIENCE_SPI_SCREEN)
 endif
 # ASM sources
 ASM_SOURCES =  \
@@ -218,13 +154,11 @@ AS_DEFS =
 C_DEFS =  \
 -DUSE_HAL_DRIVER \
 -DSTM32H725xx \
--D__FPU_PRESENT=1 \
 -DARM_MATH_CM7 \
--DSTM32IPL
+-DBSP_CONFIG_SEEDSTUDIO
 
-ifdef bsp_config_seedstudio
-C_DEFS += -DBSP_CONFIG_SEEDSTUDIO
-else
+ifndef bsp_config_seedstudio
+C_DEFS := $(filter-out -DBSP_CONFIG_SEEDSTUDIO,$(C_DEFS))
 C_DEFS += -DBSP_CONFIG_VITTASCIENCE
 endif
 
@@ -234,14 +168,10 @@ AS_INCLUDES =
 
 # C includes
 C_INCLUDES_COMMON =  \
+-IApp/Inc \
 -ICore/Inc \
--IX-CUBE-AI/App \
--IX-CUBE-AI \
--IMiddlewares/ST/AI/Inc \
--IMiddlewares/ST/STM32_ImageProcessing_Library/Inc \
 -IDrivers/BSP/Components/aps6408 \
 -IDrivers/BSP/Components/Common \
--IDrivers/BSP/Components/ov2640 \
 -IDrivers/BSP/Components/W25Q128 \
 -IDrivers/BSP/wio_lite_ai \
 -IDrivers/STM32H7xx_HAL_Driver/Inc \
@@ -285,10 +215,8 @@ CFLAGS += -std=gnu11 -Wall -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)"
 LDSCRIPT = STM32H725AEIX_PSRAM.ld
 
 # libraries
-LIBS = -lc -lm -lnosys  \
--l:NetworkRuntime810_CM7_GCC.a
-LIBDIR =  \
--LMiddlewares/ST/AI/Lib
+LIBS = -lc -lm -lnosys
+LIBDIR =
 LDFLAGS = $(MCU) -u _printf_float -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) -Wl,--start-group $(LIBS) -Wl,--end-group -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # default action: build all

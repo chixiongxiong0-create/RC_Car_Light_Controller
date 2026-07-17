@@ -18,9 +18,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32h7xx_it.h"
+#include <stdio.h>
 /* Private includes ----------------------------------------------------------*/
-#include "wio_lite_ai_lcd.h"
-#include "i2c.h"
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -144,22 +143,6 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32h7xx.s).                    */
 /******************************************************************************/
-
-/**
- * @brief This function handles DMA2 stream1 global interrupt.
- */
-void DMA2_Stream1_IRQHandler(void)
-{
-  BSP_CAMERA_DMA_IRQHandler();
-}
-
-/**
- * @brief This function handles DCMI and PSSI global interrupt.
- */
-void DCMI_PSSI_IRQHandler(void)
-{
-  BSP_CAMERA_IRQHandler();
-}
 
 /**
  * @brief  This function handles EXTI0_IRQ Handler.

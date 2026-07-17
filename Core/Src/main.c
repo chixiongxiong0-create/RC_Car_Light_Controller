@@ -1,27 +1,16 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "app.h"
 #include "crc.h"
-#include "dma.h"
 #include "ltdc.h"
 #include "octospi.h"
-#include "tim.h"
-#include "usart.h"
 #include "gpio.h"
-#include "app_x-cube-ai.h"
 
 /* Private includes ----------------------------------------------------------*/
 #include "wio_lite_ai.h"
-#include "W25Q128.h"
-#include "vittascience_i2c.h"
-#include "stm32ipl.h"
-#include "stdbool.h"
 
 #ifdef BSP_CONFIG_SCREEN_LTDC
 #include "BSP_LCD.h"
-#else // BSP_CONFIG_SCREEN_SPI
-#include "app_display.h"
-#include "stm32_lcd.h"
-#include "lcd.h"
 #endif
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,59 +23,14 @@
 
 /* Global variables ----------------------------------------------------------*/
 
-/*Application context*/
-AppConfig_TypeDef App_Config;
-
-/*Table of classes for the NN model*/
-const char* classes_table[AI_NETWORK_OUT_1_SIZE] = {"telephone","stylo"};
-
 /* Private variables ---------------------------------------------------------*/
-
- /***Buffer to store the NN input frame***/
-__attribute__((section(".NN_InputImage_Buffer")))
-__attribute__ ((aligned (32)))
-#ifdef AI_NETWORK_INPUTS_IN_ACTIVATIONS
- uint8_t *NN_InputImage_Buffer=NULL;
-#else 
- uint8_t NN_InputImage_Buffer[AI_INPUT_BUFFER_SIZE + 32 - (AI_INPUT_BUFFER_SIZE%32)];
-#endif 
- 
- /***Buffer to store the NN ouput data***/
-__attribute__((section(".NN_OutputData_Buffer")))
-__attribute__ ((aligned (32)))
-#ifdef AI_NETWORK_OUTPUTS_IN_ACTIVATIONS
- uint8_t *NN_OutputData_Buffer=NULL;
-#else 
- uint8_t NN_OutputData_Buffer[AI_OUTPUT_BUFFER_SIZE + 32 - (AI_OUTPUT_BUFFER_SIZE%32)]= {0};
-#endif 
-  
- /***Buffer to store the NN Activation data***/
-ai_handle NN_Activation_Buffer[] = {(ai_handle)0x90100000};
-
-/***LCD display buffers***/
-volatile DMA_BUFFER uint8_t lcd_display_global_memory[LCD_FRAME_BUFFER_SIZE + 32 - (LCD_FRAME_BUFFER_SIZE%32)];
-volatile DMA_BUFFER uint8_t buffer_tmp[320 * 240 * 2] = {0};
-// AI
-uint8_t buffer_ipl[IPL_BUFFER_SIZE];
-EXTMEM uint8_t buffer_ai[AI_INPUT_H * AI_INPUT_W * 3] = {0};
-// ai_i8 reserve some space for ai_float,Prevent arrays from crossing the bounds
-// static ai_u8 network_output[AI_NETWORK_OUT_1_SIZE * 4];
-
-char msg[70]; // display msg on LCD
-
-image_t frame_rgb565 = {
-    .w = 320,
-    .h = 240,
-    .bpp = IMAGE_BPP_RGB565,
-    .data = NULL};
 
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
-static void Software_Init(AppConfig_TypeDef *);
-static void Hardware_Init(AppConfig_TypeDef *);
+static void Hardware_Init(void);
 
 
 /* Private user code ---------------------------------------------------------*/
@@ -122,43 +66,13 @@ int main(void)
   /* Configure the peripherals common clocks */
   PeriphCommonClock_Config();
 
-  /* Perfom SW configuration related to the application  */
-  Software_Init(&App_Config);
-  
-  /* Perfom HW configuration (display, camera) related to the application  */
-  Hardware_Init(&App_Config);
-  
-  /* Initialize the Neural Network library  */
-  printf("Network_Init : ...");
-  Network_Init(&App_Config);
-  printf(": OK\r\n");
-
-
-  printf("Vittascience Wio Lite AI Application ready\r\n");
-  BSP_LED_On(LED_RED);
-
-  // initial IPL and AI
-  STM32Ipl_InitLib(buffer_ipl, IPL_BUFFER_SIZE);
-
-  frame_rgb565.data = buffer_tmp;
-
-  vittascience_i2c_init();
-
-#ifdef BSP_CONFIG_SCREEN_LTDC
-  sprintf(msg, "VITTASCIENCE \r\n WIO LITE AI");
-  LCD_Frame_Draw_String(10, 10, 300, 220, 35, msg, ROTATION_RIGHT);
-  LCD_Frame_Draw_Rectangle(48, 8, 224, 224, ROTATION_RIGHT);
-  LCD_Frame_Show();
-#else //BSP_CONFIG_SCREEN_SPI
-  Display_WelcomeScreen(&App_Config);
-#endif
-
-  BSP_CAMERA_ContinuousStart(lcd_display_global_memory);
+  Hardware_Init();
+  App_Init();
 
   /* Infinite loop */
   while (1)
   {
-    MX_X_CUBE_AI_Process(&App_Config);
+    App_Tick(HAL_GetTick());
   }
 }
 void BSP_PB_Callback(Button_TypeDef Button)
@@ -169,89 +83,11 @@ void BSP_PB_Callback(Button_TypeDef Button)
   }
 }
 
-void BSP_CAMERA_FrameEventCallback(void)
-{
-  char msg[70];
-  BSP_CAMERA_Suspend();
-  if ( App_Config.buffer_tmp_in_use == false)
-  {
-    App_Config.buffer_tmp_in_use = true;
-    memcpy(buffer_tmp, lcd_display_global_memory, sizeof(lcd_display_global_memory));
-    App_Config.new_data_available = true;
-    App_Config.buffer_tmp_in_use = false;
-  }
-
-#ifdef BSP_CONFIG_SCREEN_LTDC
-  LCD_Frame_Draw_Image(0, 0, 320, 240, (uint16_t *)App_Config.lcd_frame_buff, ROTATION_RIGHT);
-  sprintf(msg, "%s %.0f%%", App_Config.nn_top1_output_class_name, App_Config.nn_top1_output_class_proba);
-  LCD_Frame_Draw_String(190, 200, 300, 16, 16, msg, ROTATION_RIGHT);
-  sprintf(msg, "Inference: %ldms", App_Config.nn_inference_time);
-  LCD_Frame_Draw_String(190, 220, 300, 16, 16, msg, ROTATION_RIGHT);
-  LCD_Frame_Draw_Rectangle(48, 8, 224, 224, ROTATION_RIGHT);
-  LCD_Frame_Show();
-#else // BSP_CONFIG_SCREEN_SPI
-  sprintf(msg, "%s %.0f%%", App_Config.nn_top1_output_class_name, App_Config.nn_top1_output_class_proba);
-  UTIL_LCD_DisplayStringAt(10, LINE(0), msg, LEFT_MODE);
-  sprintf(msg, "Inference: %ldms", App_Config.nn_inference_time);
-  UTIL_LCD_DisplayStringAt(10, LINE(1), msg, LEFT_MODE);
-  UTIL_LCD_DrawRect(48, 8, 224, 224, UTIL_LCD_COLOR_GREEN);
-  BSP_DISPLAY_SPI_DrawImage((const char *) App_Config.lcd_frame_buff);
-#endif
-  BSP_CAMERA_Resume();
-}
-
-
 /* Private functions ---------------------------------------------------------*/
 /**
- * @brief Initializes the application context structure
- * @param App_Config_Ptr pointer to application context
- */
-static void Software_Init(AppConfig_TypeDef *App_Config_Ptr)
-{
-  App_Config_Ptr->mode_continuous = true;
-  App_Config_Ptr->do_ai = false;
-  App_Config_Ptr->new_data_available = false;
-  App_Config_Ptr->buffer_tmp_in_use = false;
-  // App_Config_Ptr->mirror_flip = CAMERA_MIRRORFLIP_FLIP;
-  // App_Config_Ptr->new_frame_ready = 0;
- 
-  // App_Config_Ptr->lcd_sync = 0;
-  
-  // App_Config_Ptr->lut = pixel_conv_lut;
-  
-  // App_Config_Ptr->nn_input_type = QUANT_INPUT_TYPE;
-  // App_Config_Ptr->nn_output_type = QUANT_OUTPUT_TYPE;
-  
-  App_Config_Ptr->nn_output_labels = classes_table;
-  
-  /*Preproc*/
-// #if PP_COLOR_MODE == RGB_FORMAT
-//   App_Config_Ptr->red_blue_swap = 1; /* See UM2611 section 3.2.6 Pixel data order */
-// #else
-//   App_Config_Ptr->red_blue_swap = 0;
-// #endif
-  
-// #if PP_COLOR_MODE == GRAYSCALE_FORMAT
-//   App_Config_Ptr->PixelFormatConv = SW_PFC;
-// #else
-//   App_Config_Ptr->PixelFormatConv = HW_PFC;
-// #endif
-  
-  /*Memory buffer init*/
-  App_Config_Ptr->nn_input_buffer = NN_InputImage_Buffer; 
-  App_Config_Ptr->nn_output_buffer = NN_OutputData_Buffer;
-  // App_Config_Ptr->camera_capture_buffer = CapturedImage_Buffer;
-  // App_Config_Ptr->camera_capture_buffer_no_borders = App_Config_Ptr->camera_capture_buffer+((CAM_RES_WIDTH - CAM_RES_HEIGHT)/2)*CAM_RES_WIDTH*RGB_565_BPP;
-  // App_Config_Ptr->rescaled_image_buffer = RescaledImage_Buffer;
-  App_Config_Ptr->activation_buffer = NN_Activation_Buffer;
-  App_Config_Ptr->lcd_frame_buff = lcd_display_global_memory;
-}
-
-/**
  * @brief Initializes the WH peripherals
- * @param App_Config_Ptr pointer to application context
  */
-static void Hardware_Init(AppConfig_TypeDef *App_Config_Ptr)
+static void Hardware_Init(void)
 {
   // /*LEDs Init*/
   // BSP_LED_Init(LED_GREEN);
@@ -266,47 +102,15 @@ static void Hardware_Init(AppConfig_TypeDef *App_Config_Ptr)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   
-  COM_InitTypeDef COM_Init;
-  COM_Init.BaudRate = 115200;
-  COM_Init.HwFlowCtl = COM_HWCONTROL_NONE;
-  COM_Init.Parity = COM_PARITY_NONE;
-  COM_Init.StopBits = COM_STOPBITS_1;
-  COM_Init.WordLength = COM_WORDLENGTH_8B;
-  BSP_COM_Init(COM1,&COM_Init);
-  printf("Wio Lite Ai initialising\r\n");
-
-  printf("Led And Button : ...");
   BSP_LED_Init(LED_RED);
   BSP_LED_Init(LED_YELLOW);
   BSP_PB_Init(BUTTON_USER1, BUTTON_MODE_EXTI);
-  printf(": OK\r\n");
-  printf("OSPI_RAM : ...");
   BSP_OSPI_RAM_Init(0);
   BSP_OSPI_RAM_EnableMemoryMappedMode(0);
-  printf(": OK\r\n");
-  printf("Timer 2 : ...");
-  MX_TIM2_Init();
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); // XCLK
-  printf(": OK\r\n");
-  printf("Camera : ...");
-  BSP_CAMERA_Init(RESOLUTION_R320x240);
-  printf(": OK\r\n");
-  printf("CRC : ...");
   MX_CRC_Init();
-  printf(": OK\r\n");
-  printf("OCTOSPI2 : ...");
   MX_OCTOSPI2_Init();
-  printf(": OK\r\n");
 #ifdef BSP_CONFIG_SCREEN_LTDC
-  printf("LTDC : ...");
   MX_LTDC_Init();
-  printf(": OK\r\n");
-#else // BSP_CONFIG_SCREEN_SPI
-  Display_Init(App_Config_Ptr);
-  HAL_GPIO_WritePin(ILI9341_LED_GPIO_Port, ILI9341_LED_Pin, GPIO_PIN_SET);
-#endif
-#ifdef BSP_CONFIG_VITTASCIENCE
-  BSP_I2C1_Init();
 #endif
 }
 

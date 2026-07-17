@@ -1,0 +1,13 @@
+diff --git a/Core/Src/main.c b/Core/Src/main.c
+index a918a1e..2cc0f55 100644
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -304,7 +304,7 @@ static void Hardware_Init(AppConfig_TypeDef *App_Config_Ptr)
+ #else // BSP_CONFIG_SCREEN_SPI
+   Display_Init(App_Config_Ptr);
+   HAL_GPIO_WritePin(ILI9341_LED_GPIO_Port, ILI9341_LED_Pin, GPIO_PIN_SET);
+-#endif
++#endif`
+ #ifdef BSP_CONFIG_VITTASCIENCE
+   BSP_I2C1_Init();
+ #endif
