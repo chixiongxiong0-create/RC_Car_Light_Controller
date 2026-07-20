@@ -18,7 +18,7 @@ WatchdogStartResult MX_IWDG1_Init(void)
             return WATCHDOG_NOT_STARTED_FAIL;
         }
     }
-#if defined(DEBUG) || !defined(NDEBUG)
+#if defined(DEBUG)
     __HAL_DBGMCU_FREEZE_IWDG1();
 #endif
     /* STM32H7 HAL_IWDG_Init starts first; SR propagation only occurs once

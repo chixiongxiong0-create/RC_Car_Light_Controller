@@ -1,7 +1,10 @@
 $ErrorActionPreference = 'Stop'
 $source = Get-Content -Raw (Join-Path $PSScriptRoot '..\Core\Src\iwdg.c')
-if ($source -notmatch '#if defined\(DEBUG\) \|\| !defined\(NDEBUG\)') {
-    throw 'IWDG debug-freeze compile guard is missing'
+if ($source -notmatch '#if defined\(DEBUG\)') {
+    throw 'IWDG debug-freeze must require the explicit DEBUG macro'
+}
+if ($source -match 'NDEBUG') {
+    throw 'IWDG production freeze selection must not depend on NDEBUG'
 }
 if ($source -notmatch '__HAL_DBGMCU_FREEZE_IWDG1\(\)') {
     throw 'IWDG1 is not frozen while debugging'
