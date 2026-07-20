@@ -107,6 +107,8 @@ App/Src/ui/showcase_model.c \
 App/Src/ui/screen_showcase.c \
 App/Src/ui/dashboard_format.c \
 App/Src/diagnostics.c \
+App/Src/platform/touch_probe.c \
+Core/Src/iwdg.c \
 App/Src/led/led_controller.c \
 App/Src/platform/ws2812_port.c
 

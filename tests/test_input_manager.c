@@ -121,8 +121,14 @@ static void test_button_debounce_and_duration_ranges(void)
     release_after(1300u, 801u, 0.0f);
     assert(input_manager_page() == UI_PAGE_SHOWCASE);
     assert(!input_manager_take_brightness_request());
+    assert(!input_manager_take_diagnostics_request());
     release_after(2300u, 1999u, 0.0f);
     assert(input_manager_page() == UI_PAGE_SHOWCASE);
+    assert(!input_manager_take_brightness_request());
+
+    release_after(6500u, 5000u, 0.0f);
+    assert(input_manager_take_diagnostics_request());
+    assert(!input_manager_take_diagnostics_request());
     assert(!input_manager_take_brightness_request());
     release_after(4400u, 2000u, 0.0f);
     assert(input_manager_page() == UI_PAGE_SHOWCASE);

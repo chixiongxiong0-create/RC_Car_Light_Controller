@@ -52,15 +52,18 @@ void test_led_controller(void)
     state.link = LINK_LOST;
     led_controller_render(0u, &state, UI_PAGE_SHOWCASE, true, false,
                           pixels, 10u);
-    assert_all(pixels, 10u, (LedRgb){64u, 0u, 0u});
+    assert_all(pixels, 10u, (LedRgb){64u, 48u, 0u});
     led_controller_render(300u, &state, UI_PAGE_SHOWCASE, true, false,
                           pixels, 10u);
     assert_all(pixels, 10u, (LedRgb){0u, 0u, 0u});
 
-    /* Board fault is the top-priority solid indication. */
-    led_controller_render(300u, &state, UI_PAGE_SHOWCASE, true, true,
+    /* Board fault is the top-priority three-pulse red code. */
+    led_controller_render(400u, &state, UI_PAGE_SHOWCASE, true, true,
                           pixels, 10u);
-    assert_all(pixels, 10u, (LedRgb){64u, 0u, 64u});
+    assert_all(pixels, 10u, (LedRgb){64u, 0u, 0u});
+    led_controller_render(700u, &state, UI_PAGE_SHOWCASE, true, true,
+                          pixels, 10u);
+    assert_all(pixels, 10u, (LedRgb){0u, 0u, 0u});
 
     LedRgb full[LED_MAX_PIXELS];
     for (size_t i = 0; i < LED_MAX_PIXELS; ++i) {

@@ -13,3 +13,4 @@ void input_manager_set_touch_page(UiPage page);
 void input_manager_tick(uint32_t now_ms, const VehicleState *state);
 UiPage input_manager_page(void);
 bool input_manager_take_brightness_request(void);
+bool input_manager_take_diagnostics_request(void);

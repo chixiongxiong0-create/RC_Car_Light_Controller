@@ -1,6 +1,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "app.h"
+#include "diagnostics.h"
 #include "crc.h"
 #include "ltdc.h"
 #include "octospi.h"
@@ -68,6 +69,7 @@ int main(void)
 
   Hardware_Init();
   App_Init();
+  diagnostics_watchdog_start();
 
   /* Infinite loop */
   while (1)

@@ -23,6 +23,7 @@ add_executable(unit_tests
     test_showcase_model.c
     test_led_controller.c
     test_ws2812_encoder.c
+    test_diagnostics.c
     ../App/Src/app_time.c
     ../App/Src/msp/msp_codec.c
     ../App/Src/msp/msp_client.c
@@ -38,9 +39,11 @@ add_executable(unit_tests
     ../App/Src/ui/showcase_model.c
     ../App/Src/led/led_controller.c
     ../App/Src/platform/ws2812_port.c
+    ../App/Src/diagnostics.c
+    ../App/Src/platform/touch_probe.c
 )
 target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
-target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1 WS2812_HOST_TEST=1)
+target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1 WS2812_HOST_TEST=1 TOUCH_PROBE_HOST_TEST=1 DIAGNOSTICS_HOST_TEST=1)
 
 add_test(NAME unit_tests COMMAND unit_tests)
 add_test(NAME lvgl_make_manifest

@@ -5,7 +5,8 @@
 enum {
     BUTTON_DEBOUNCE_MS = 30u,
     BUTTON_CYCLE_MAX_MS = 800u,
-    BUTTON_BRIGHTNESS_MIN_MS = 2000u
+    BUTTON_BRIGHTNESS_MIN_MS = 2000u,
+    BUTTON_DIAGNOSTICS_MIN_MS = 5000u
 };
 
 typedef enum {
@@ -25,6 +26,7 @@ static bool touch_available;
 static bool touch_pending;
 static UiPage touch_page;
 static bool brightness_requested;
+static bool diagnostics_requested;
 static bool aux_authoritative;
 
 static AuxZone aux_zone(float value)
@@ -82,6 +84,7 @@ void input_manager_init(void)
     touch_pending = false;
     touch_page = UI_PAGE_DASHBOARD;
     brightness_requested = false;
+    diagnostics_requested = false;
     aux_authoritative = false;
 }
 
@@ -118,7 +121,9 @@ void input_manager_tick(uint32_t now_ms, const VehicleState *state)
             press_started_ms = raw_changed_ms;
         } else {
             const uint32_t duration_ms = (uint32_t)(raw_changed_ms - press_started_ms);
-            if (duration_ms >= BUTTON_BRIGHTNESS_MIN_MS) {
+            if (duration_ms >= BUTTON_DIAGNOSTICS_MIN_MS) {
+                diagnostics_requested = true;
+            } else if (duration_ms >= BUTTON_BRIGHTNESS_MIN_MS) {
                 brightness_requested = true;
             } else if (duration_ms >= BUTTON_DEBOUNCE_MS &&
                        duration_ms <= BUTTON_CYCLE_MAX_MS) {
@@ -161,5 +166,12 @@ bool input_manager_take_brightness_request(void)
 {
     const bool result = brightness_requested;
     brightness_requested = false;
+    return result;
+}
+
+bool input_manager_take_diagnostics_request(void)
+{
+    const bool result = diagnostics_requested;
+    diagnostics_requested = false;
     return result;
 }

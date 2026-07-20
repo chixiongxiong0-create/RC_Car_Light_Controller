@@ -38,10 +38,11 @@ void led_controller_render(uint32_t now_ms, const VehicleState *state,
     bool left_only = false;
     bool right_only = false;
     if (board_fault) {
-        base = (LedRgb){64u, 0u, 64u};
+        base = pulse_on(now_ms % 2000u, 100u, 200u, 3u)
+                   ? (LedRgb){64u, 0u, 0u} : (LedRgb){0u, 0u, 0u};
     } else if (state->link == LINK_LOST) {
         base = pulse_on(now_ms % 2000u, 100u, 200u, 2u)
-                   ? (LedRgb){64u, 0u, 0u} : (LedRgb){0u, 0u, 0u};
+                   ? (LedRgb){64u, 48u, 0u} : (LedRgb){0u, 0u, 0u};
     } else if (low_battery) {
         base = pulse_on(now_ms % 5000u, 200u, 400u, 3u)
                    ? (LedRgb){64u, 8u, 0u} : (LedRgb){0u, 0u, 0u};

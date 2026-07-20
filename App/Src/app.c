@@ -8,6 +8,7 @@
 #include "platform/msp_uart.h"
 #include "platform/button_input.h"
 #include "platform/ws2812_port.h"
+#include "platform/touch_probe.h"
 #include "ui/low_battery_policy.h"
 #ifdef BSP_CONFIG_SEEDSTUDIO
 #include "platform/lvgl_port.h"
@@ -23,6 +24,11 @@ static LowBatteryPolicy battery_policy;
 #ifdef BSP_CONFIG_SEEDSTUDIO
 static bool ui_ready;
 #endif
+static uint32_t frame_misses;
+static uint32_t last_diag_ms;
+static uint32_t last_cycle;
+static uint32_t max_loop_us;
+static uint32_t led_current_ma;
 
 static bool write_msp(const uint8_t *data, size_t length, void *ctx)
 {
@@ -56,7 +62,9 @@ static void led_controller_tick(uint32_t now_ms, const VehicleState *state,
   led_controller_render(now_ms, state, input_manager_page(), low_battery,
                         board_fault, pixels, APP_LED_PIXEL_COUNT);
   led_limit_current(pixels, APP_LED_PIXEL_COUNT, LED_CURRENT_BUDGET_MA);
+  led_current_ma = led_estimated_ma(pixels, APP_LED_PIXEL_COUNT);
   (void)ws2812_port_submit(now_ms, pixels, APP_LED_PIXEL_COUNT);
+  diagnostics_watchdog_mark(DIAG_PROGRESS_LED);
 }
 
 void App_Init(void)
@@ -68,6 +76,7 @@ void App_Init(void)
   low_battery_policy_init(&battery_policy, APP_BATTERY_CELL_COUNT);
   msp_client_init(&client, write_msp, on_msp_frame, NULL);
   diagnostics_init();
+  diagnostics_set_touch_available(touch_probe_boot() != TOUCH_NONE);
   ws2812_port_init();
   input_manager_set_touch_available(diagnostics_get()->touch_available);
 #ifdef BSP_CONFIG_SEEDSTUDIO
@@ -75,6 +84,16 @@ void App_Init(void)
   if (ui_ready) {
     ui_app_init();
   }
+#endif
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0u;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  last_cycle = DWT->CYCCNT;
+  last_diag_ms = HAL_GetTick();
+#ifdef BSP_CONFIG_SEEDSTUDIO
+  diagnostics_set_init_result(ui_ready && msp_uart_rx_arm_failures() == 0u);
+#else
+  diagnostics_set_init_result(msp_uart_rx_arm_failures() == 0u);
 #endif
 }
 
@@ -87,6 +106,7 @@ void App_Tick(uint32_t now_ms)
     msp_client_rx_byte(&client, byte, now_ms);
   }
   msp_client_tick(&client, now_ms);
+  diagnostics_watchdog_mark(DIAG_PROGRESS_MSP);
   vehicle_state_tick(now_ms);
   button_input_poll(now_ms, read_user_button, set_user_button, NULL);
   input_manager_set_touch_available(diagnostics_get()->touch_available);
@@ -98,9 +118,36 @@ void App_Tick(uint32_t now_ms)
   if (ui_ready) {
     lvgl_port_tick(now_ms);
     ui_app_tick(now_ms, vehicle_state_get(), low_battery);
+    diagnostics_watchdog_mark(DIAG_PROGRESS_UI);
   }
+#else
+  diagnostics_watchdog_mark(DIAG_PROGRESS_UI);
 #endif
   led_controller_tick(now_ms, vehicle_state_get(), low_battery);
+  const uint32_t cycle = DWT->CYCCNT;
+  const uint32_t loop_us = (uint32_t)(((uint64_t)(cycle - last_cycle) * 1000000u) /
+                                      SystemCoreClock);
+  last_cycle = cycle;
+  if (loop_us > max_loop_us) {
+    max_loop_us = loop_us;
+  }
+  if ((uint32_t)(now_ms - last_diag_ms) >= 1000u) {
+#ifdef BSP_CONFIG_SEEDSTUDIO
+    const uint16_t fps = lvgl_port_fps();
+#else
+    const uint16_t fps = 0u;
+#endif
+    if (fps != 0u && fps < 20u) {
+      ++frame_misses;
+    } else {
+      frame_misses = 0u;
+    }
+    const uint32_t age = client.last_valid_ms == 0u
+                           ? now_ms : (uint32_t)(now_ms - client.last_valid_ms);
+    diagnostics_set_runtime(fps, max_loop_us, client.timeouts, frame_misses,
+                            age, led_current_ma);
+    last_diag_ms = now_ms;
+  }
   diagnostics_tick(now_ms);
 }
 

@@ -62,7 +62,8 @@
 #define HAL_OSPI_MODULE_ENABLED
 /* #define HAL_I2S_MODULE_ENABLED   */
 /* #define HAL_SMBUS_MODULE_ENABLED   */
-/* #define HAL_IWDG_MODULE_ENABLED   */
+/* IWDG1 is configured by Core/Src/iwdg.c because this vendor HAL snapshot
+ * does not include the optional IWDG HAL module. */
 /* #define HAL_LPTIM_MODULE_ENABLED   */
 #define HAL_LTDC_MODULE_ENABLED
 /* #define HAL_QSPI_MODULE_ENABLED   */
