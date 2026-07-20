@@ -113,28 +113,90 @@ CubeMX 的 IWDG virtual pin Minor warning 是已知提示。不要为消除提�
 要求持续包含 MSP 数据变化、页面轮换、灯效和周期性电机/舵机干扰。验收要求：无复位、
 不可恢复冻结、画面损坏或持续低于 28 FPS。短暂事件也必须记录，不能只填写最终值。
 
-| 字段 | 记录 |
-|---|---|
-| 状态 | PENDING |
-| 开始时间 | PENDING |
-| 结束时间 | PENDING |
-| 实际持续时间 | PENDING |
-| 固件提交/构建类型 | PENDING |
-| 最低 FPS | PENDING |
-| 最大主循环时间（µs） | PENDING |
-| MSP timeout 增量 | PENDING |
-| UART overrun 增量 | PENDING |
-| frame miss 增量 | PENDING |
-| WS2812/DMA error 增量 | PENDING |
-| reset count 增量 | PENDING |
-| 5 V最小/最大电压 | PENDING |
-| 电池最小/最大电压 | PENDING |
-| MCU/板上最高温度 | PENDING |
-| 降压模块最高温度 | PENDING |
-| 灯带最高温度 | PENDING |
-| 花屏/撕裂/冻结事件 | PENDING |
-| 证据与日志路径 | PENDING |
-| 测试人员/签名 | PENDING |
-| 备注 | PENDING |
+### 采集方法与来源
+
+- 诊断 overlay 是固件计数器的签署来源，可见字段为：`fps`、当前
+  `frame_misses`、`max_loop`、`msp_timeouts`、`uart_overruns`、`reset_flags` 和
+  `touch`。开始和结束各拍一张清晰照片；测试中每 10 分钟拍照或从连续录屏提取一帧。
+- `msp_timeouts` 和 `uart_overruns` 可用结束值减开始值得到差值。`frame_misses` 按每次
+  采样的可见值记录，并签署“最大观察到的连续 frame_misses”，不声称它是累计 delta。
+- FPS 以定时采样值签署“最低采样 FPS”；画面连续性和复位由覆盖整个测试的连续视频
+  佐证，不能由单张结束照片推断。
+- 当前诊断 overlay 没有持久的 WS2812/DMA error 计数。改为从连续视频和人工事件日志
+  记录“可见灯效停更/恢复事件数”；事件发生时再保存逻辑分析仪触发记录。若必须获得
+  内部 WS 错误精确值，填写 `N/A—需另加 instrumented build`，它不是当前固件的签署字段。
+- 当前固件也没有持久 reset count。复位次数根据连续视频中的 boot sequence 和电源电流
+  重启特征人工计数；事件后立即拍摄 `reset_flags`。该值不是内部持久计数器。
+- 5 V/电池电压由带日志的万用表或示波器采集；温度由热电偶或红外测温仪采集，并保存
+  仪器型号、测点和原始记录。
+
+### 开始/结束诊断快照
+
+| 快照 | 时间戳 | fps | frame_misses（当前） | max_loop (µs) | msp_timeouts | uart_overruns | reset_flags | touch | 照片/录屏证据 |
+|---|---|---:|---:|---:|---:|---:|---|---|---|
+| START | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| END | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+
+### 每10分钟定时采样
+
+从 `T+000` 开始，每 10 分钟增加一行，直到 `T+240`（共25个采样点）。每行必须关联
+诊断 overlay 的照片或连续录屏时间码；不得从缺失采样点内插通过结果。
+
+| T+分钟 | 时间戳 | fps | frame_misses（当前） | max_loop (µs) | msp_timeouts | uart_overruns | 5 V | 电池V | 板/降压/灯带温度 | 视频时间码/照片 |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|---|---|
+| 000 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 010 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 020 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 030 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 040 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 050 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 060 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 070 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 080 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 090 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 100 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 110 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 120 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 130 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 140 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 150 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 160 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 170 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 180 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 190 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 200 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 210 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 220 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 230 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| 240 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+
+### 人工事件日志
+
+| 时间戳/视频时间码 | 事件类型 | 现象与恢复 | boot sequence/电流重启特征 | 事件后reset_flags | 逻辑分析仪/其他证据 |
+|---|---|---|---|---|---|
+| PENDING | 灯效停更/恢复、复位、撕裂、冻结或其他 | PENDING | PENDING | PENDING | PENDING |
+
+### 四小时签署汇总
+
+| 字段 | 来源 | 记录 |
+|---|---|---|
+| 状态 | 全部阻断项与下列证据 | PENDING |
+| 开始/结束时间、实际时长 | START/END照片元数据及连续视频 | PENDING |
+| 固件提交/构建类型 | ELF对应提交与构建命令记录 | PENDING |
+| 最低采样 FPS | 每10分钟采样表中的最小值 | PENDING |
+| 最大主循环时间（µs） | overlay `max_loop`各采样最大值 | PENDING |
+| 最大观察到的连续 frame_misses | overlay当前值及连续视频 | PENDING |
+| MSP timeout 开始/结束/差值 | START/END `msp_timeouts` | PENDING |
+| UART overrun 开始/结束/差值 | START/END `uart_overruns` | PENDING |
+| 可见灯效停更/恢复事件数 | 连续视频＋人工事件日志；发生时附逻辑分析仪触发 | PENDING |
+| 观察到的复位次数 | 连续视频boot sequence＋电源电流特征；非持久内部counter | PENDING |
+| 复位事件后的 reset_flags | 事件后overlay照片 | PENDING |
+| 5 V最小/最大电压 | 万用表/示波器原始日志 | PENDING |
+| 电池最小/最大电压 | 万用表/示波器原始日志 | PENDING |
+| 板上/降压模块/灯带最高温度 | 已记录测点的测温仪原始数据 | PENDING |
+| 花屏/撕裂/不可恢复冻结事件 | 连续视频＋人工事件日志 | PENDING |
+| 证据与日志路径 | 照片、视频、测量与逻辑分析仪文件清单 | PENDING |
+| 测试人员/签名 | 人工签署 | PENDING |
+| 备注 | 人工记录 | PENDING |
 
 最终结论：**PENDING — 等待真实硬件完成全部阻断项和四小时浸泡测试。**
