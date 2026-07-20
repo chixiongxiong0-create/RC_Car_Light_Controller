@@ -9,8 +9,24 @@ TouchController touch_probe_identify(TouchProbeRead read, void *ctx)
     if (read == NULL) {
         return TOUCH_NONE;
     }
-    if (read(0x38u, 0xA8u, false, id, 1u, 5u, ctx) &&
-        id[0] != 0x00u && id[0] != 0xFFu) {
+    static const uint8_t ft_chip_ids[] = {
+        0x03u, 0x06u, 0x0Au, 0x11u, 0x36u, 0x54u, 0x64u
+    };
+    static const uint8_t ft_vendor_ids[] = {0x11u, 0x79u};
+    uint8_t chip_id = 0u;
+    uint8_t vendor_id = 0u;
+    bool known_chip = false;
+    bool known_vendor = false;
+    if (read(0x38u, 0xA3u, false, &chip_id, 1u, 5u, ctx) &&
+        read(0x38u, 0xA8u, false, &vendor_id, 1u, 5u, ctx)) {
+        for (size_t i = 0u; i < sizeof ft_chip_ids; ++i) {
+            known_chip |= chip_id == ft_chip_ids[i];
+        }
+        for (size_t i = 0u; i < sizeof ft_vendor_ids; ++i) {
+            known_vendor |= vendor_id == ft_vendor_ids[i];
+        }
+    }
+    if (known_chip && known_vendor) {
         return TOUCH_FT_FAMILY;
     }
     memset(id, 0, sizeof id);

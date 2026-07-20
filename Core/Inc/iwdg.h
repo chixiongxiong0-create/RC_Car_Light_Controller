@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include "main.h"
+#include "platform/watchdog_status.h"
 
-bool MX_IWDG1_Init(void);
+WatchdogStartResult MX_IWDG1_Init(void);
 void IWDG1_Refresh(void);

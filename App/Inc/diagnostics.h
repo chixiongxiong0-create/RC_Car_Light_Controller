@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "platform/watchdog_status.h"
+
 typedef enum {
     HEALTH_BOOTING,
     HEALTH_OK,
@@ -53,6 +55,8 @@ void diagnostics_set_runtime(uint16_t fps, uint32_t loop_us,
                              uint32_t msp_timeouts, uint32_t frame_misses,
                              uint32_t msp_age_ms, uint32_t led_current_ma);
 void diagnostics_set_touch_available(bool available);
-void diagnostics_watchdog_start(void);
+bool diagnostics_watchdog_start(void);
+void diagnostics_watchdog_apply_start_result(WatchdogStartResult result);
+bool diagnostics_watchdog_is_started(void);
 void diagnostics_watchdog_mark(uint8_t progress);
 const DiagnosticsSnapshot *diagnostics_get(void);

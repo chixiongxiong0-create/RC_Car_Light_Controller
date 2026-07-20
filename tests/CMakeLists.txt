@@ -52,3 +52,6 @@ add_test(NAME lvgl_make_manifest
 add_test(NAME button_polling_manifest
     COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File ${CMAKE_CURRENT_SOURCE_DIR}/test_button_polling_manifest.ps1)
+add_test(NAME watchdog_manifest
+    COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+            -File ${CMAKE_CURRENT_SOURCE_DIR}/test_watchdog_manifest.ps1)

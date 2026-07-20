@@ -57,6 +57,7 @@ void diagnostics_init(void)
     memset(&inputs, 0, sizeof inputs);
     snapshot.state = HEALTH_BOOTING;
     diagnostics_watchdog_gate_init(&watchdog_gate);
+    watchdog_started = false;
 #ifndef DIAGNOSTICS_HOST_TEST
     snapshot.reset_flags = RCC->RSR;
     __HAL_RCC_CLEAR_RESET_FLAGS();
@@ -98,12 +99,31 @@ void diagnostics_set_touch_available(bool available)
     snapshot.touch_available = available;
 }
 
-void diagnostics_watchdog_start(void)
+void diagnostics_watchdog_apply_start_result(WatchdogStartResult result)
+{
+    watchdog_started = result != WATCHDOG_NOT_STARTED_FAIL;
+    if (result != WATCHDOG_STARTED_OK) {
+        inputs.init_failed = true;
+        snapshot.state = diagnostics_health(&inputs);
+    }
+}
+
+bool diagnostics_watchdog_is_started(void)
+{
+    return watchdog_started;
+}
+
+bool diagnostics_watchdog_start(void)
 {
 #ifndef DIAGNOSTICS_HOST_TEST
-    if (snapshot.state != HEALTH_FAULT && MX_IWDG1_Init()) {
-        watchdog_started = true;
+    if (snapshot.state == HEALTH_FAULT) {
+        return false;
     }
+    const WatchdogStartResult result = MX_IWDG1_Init();
+    diagnostics_watchdog_apply_start_result(result);
+    return result == WATCHDOG_STARTED_OK;
+#else
+    return false;
 #endif
 }
 

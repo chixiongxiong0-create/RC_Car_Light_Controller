@@ -7,7 +7,9 @@
 typedef struct {
     unsigned calls;
     uint8_t hit_address;
-    uint8_t id[4];
+    uint8_t chip_id;
+    uint8_t vendor_id;
+    uint8_t gt_id[4];
 } ProbeFake;
 
 static bool fake_read(uint8_t address, uint16_t reg, bool reg16,
@@ -17,12 +19,18 @@ static bool fake_read(uint8_t address, uint16_t reg, bool reg16,
     ProbeFake *fake = ctx;
     ++fake->calls;
     assert(timeout_ms == 5u);
-    assert((address == 0x38u && reg == 0xA8u && !reg16) ||
+    assert((address == 0x38u && (reg == 0xA3u || reg == 0xA8u) && !reg16) ||
            ((address == 0x5Du || address == 0x14u) && reg == 0x8140u && reg16));
     if (address != fake->hit_address) {
         return false;
     }
-    memcpy(data, fake->id, length);
+    if (address == 0x38u && reg == 0xA3u) {
+        data[0] = fake->chip_id;
+    } else if (address == 0x38u && reg == 0xA8u) {
+        data[0] = fake->vendor_id;
+    } else {
+        memcpy(data, fake->gt_id, length);
+    }
     return true;
 }
 
@@ -56,12 +64,37 @@ static void test_watchdog_gate(void)
     assert(!diagnostics_watchdog_take_refresh(&gate));
 }
 
+static void test_watchdog_start_results(void)
+{
+    diagnostics_init();
+    diagnostics_set_init_result(true);
+    diagnostics_watchdog_apply_start_result(WATCHDOG_NOT_STARTED_FAIL);
+    assert(diagnostics_get()->state == HEALTH_FAULT);
+    assert(!diagnostics_watchdog_is_started());
+
+    diagnostics_init();
+    diagnostics_set_init_result(true);
+    diagnostics_watchdog_apply_start_result(WATCHDOG_STARTED_OK);
+    assert(diagnostics_get()->state == HEALTH_OK);
+    assert(diagnostics_watchdog_is_started());
+
+    diagnostics_init();
+    diagnostics_set_init_result(true);
+    diagnostics_watchdog_apply_start_result(WATCHDOG_STARTED_CONFIG_FAIL);
+    assert(diagnostics_get()->state == HEALTH_FAULT);
+    /* Once hardware has started, fault reporting must not disable feeding. */
+    assert(diagnostics_watchdog_is_started());
+}
+
 static void test_touch_probe(void)
 {
-    ProbeFake fake = {.hit_address = 0x38u, .id = {0x54u}};
+    ProbeFake fake = {.hit_address = 0x38u, .chip_id = 0x54u, .vendor_id = 0x11u};
     assert(touch_probe_identify(fake_read, &fake) == TOUCH_FT_FAMILY);
-    assert(fake.calls == 1u);
-    fake = (ProbeFake){.hit_address = 0x5Du, .id = {'9','1','1','0'}};
+    assert(fake.calls == 2u);
+    fake = (ProbeFake){.hit_address = 0x38u, .chip_id = 0x55u, .vendor_id = 0x11u};
+    assert(touch_probe_identify(fake_read, &fake) == TOUCH_NONE);
+    assert(fake.calls == 4u);
+    fake = (ProbeFake){.hit_address = 0x5Du, .gt_id = {'9','1','1','0'}};
     assert(touch_probe_identify(fake_read, &fake) == TOUCH_GT_FAMILY);
     assert(fake.calls == 2u);
     fake = (ProbeFake){0};
@@ -73,5 +106,6 @@ void test_diagnostics(void)
 {
     test_health();
     test_watchdog_gate();
+    test_watchdog_start_results();
     test_touch_probe();
 }
