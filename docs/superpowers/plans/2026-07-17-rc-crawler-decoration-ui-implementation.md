@@ -880,10 +880,12 @@ Estimate each channel linearly against 20 mA at 255 and scale all channels with 
 
 - [ ] **Step 3: Configure SPI3 TX DMA on PB5**
 
-Configure SPI3 master, 2.4 MHz effective clock, 8-bit, MSB first, TX-only DMA. Encode WS2812 bit `0` as SPI bits `100` and bit `1` as `110`. Buffer size is `30 * 24 * 3 / 8 = 270` bytes plus 24 zero reset bytes.
+Configure SPI3 master from the existing 110 MHz PLL1Q with prescaler `/32`, giving a 3.4375 MHz effective clock, 8-bit, MSB first, TX-only DMA. Keep the LTDC PLL unchanged. Encode each GRB WS2812 bit using four SPI bits: `0` as `1000` and `1` as `1110`. For 30 pixels the encoded payload is `30 * 24 * 4 / 8 = 360` bytes, followed by 24 zero reset bytes.
+
+The theoretical bit-cell period is 1.164 µs, with `T0H` 0.291 µs and `T1H` 0.873 µs. Because LTDC/OSPI clock constraints prevent independently selecting the earlier candidate clock without disturbing established display/memory clocks, this section was revised on 2026-07-17 after the user selected方案 A. A logic-analyzer measurement of `T0H`, `T1H`, cell period, and reset-low time on the real level-shifted DIN signal is a blocking hardware acceptance item.
 
 ```c
-#define WS_ENCODED_BYTES 270u
+#define WS_ENCODED_BYTES 360u
 #define WS_RESET_BYTES 24u
 static uint8_t tx[WS_ENCODED_BYTES + WS_RESET_BYTES];
 ```
