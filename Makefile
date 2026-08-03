@@ -90,6 +90,8 @@ App/Src/app.c \
 App/Src/app_time.c \
 App/Src/input_manager.c \
 App/Src/vehicle_state.c \
+App/Src/demo_vehicle_state.c \
+App/Src/vehicle_state_source.c \
 App/Src/msp/msp_codec.c \
 App/Src/msp/msp_client.c \
 App/Src/platform/msp_uart.c \

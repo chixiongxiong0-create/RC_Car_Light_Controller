@@ -17,10 +17,12 @@
 #include "usart.h"
 #include "spi.h"
 #include "vehicle_state.h"
+#include "vehicle_state_source.h"
 #include "wio_lite_ai.h"
 
 static MspClient client;
 static LowBatteryPolicy battery_policy;
+static VehicleStateSource vehicle_source;
 #ifdef BSP_CONFIG_SEEDSTUDIO
 static bool ui_ready;
 #endif
@@ -39,7 +41,9 @@ static bool write_msp(const uint8_t *data, size_t length, void *ctx)
 static void on_msp_frame(const MspFrame *frame, uint32_t now_ms, void *ctx)
 {
   (void)ctx;
-  (void)vehicle_state_on_msp(frame, now_ms);
+  if (vehicle_state_on_msp(frame, now_ms)) {
+    vehicle_state_source_note_real(&vehicle_source, now_ms);
+  }
 }
 
 static int32_t read_user_button(void *ctx)
@@ -72,6 +76,7 @@ void App_Init(void)
   MX_USART3_UART_Init();
   msp_uart_init();
   vehicle_state_init();
+  vehicle_state_source_init(&vehicle_source);
   input_manager_init();
   low_battery_policy_init(&battery_policy, APP_BATTERY_CELL_COUNT);
   msp_client_init(&client, write_msp, on_msp_frame, NULL);
@@ -101,6 +106,8 @@ void App_Tick(uint32_t now_ms)
 {
   uint8_t byte;
   bool low_battery;
+  const VehicleState *real_state;
+  const VehicleState *presented;
   msp_uart_service();
   while (msp_uart_read(&byte)) {
     msp_client_rx_byte(&client, byte, now_ms);
@@ -108,22 +115,27 @@ void App_Tick(uint32_t now_ms)
   msp_client_tick(&client, now_ms);
   diagnostics_watchdog_mark(DIAG_PROGRESS_MSP);
   vehicle_state_tick(now_ms);
+  real_state = vehicle_state_get();
+  vehicle_state_source_tick(&vehicle_source, now_ms, APP_BATTERY_CELL_COUNT,
+                            real_state);
+  presented = vehicle_state_source_get(&vehicle_source);
   button_input_poll(now_ms, read_user_button, set_user_button, NULL);
   input_manager_set_touch_available(diagnostics_get()->touch_available);
-  input_manager_tick(now_ms, vehicle_state_get());
+  input_manager_tick(now_ms, presented);
   low_battery = low_battery_policy_update(
-      &battery_policy, vehicle_state_get()->battery_v,
-      vehicle_state_get()->battery_v > 0.0f);
+      &battery_policy, presented->battery_v,
+      presented->battery_v > 0.0f);
 #ifdef BSP_CONFIG_SEEDSTUDIO
   if (ui_ready) {
     lvgl_port_tick(now_ms);
-    ui_app_tick(now_ms, vehicle_state_get(), low_battery);
+    ui_app_tick(now_ms, presented, low_battery,
+                vehicle_state_source_is_demo(&vehicle_source));
     diagnostics_watchdog_mark(DIAG_PROGRESS_UI);
   }
 #else
   diagnostics_watchdog_mark(DIAG_PROGRESS_UI);
 #endif
-  led_controller_tick(now_ms, vehicle_state_get(), low_battery);
+  led_controller_tick(now_ms, presented, low_battery);
   const uint32_t cycle = DWT->CYCCNT;
   const uint32_t loop_us = (uint32_t)(((uint64_t)(cycle - last_cycle) * 1000000u) /
                                       SystemCoreClock);

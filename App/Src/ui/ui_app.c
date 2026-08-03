@@ -13,6 +13,7 @@ static lv_obj_t *face;
 static lv_obj_t *showcase;
 static lv_obj_t *shutter;
 static lv_obj_t *shutter_edge;
+static lv_obj_t *demo_badge;
 static PageTransition transition;
 static lv_obj_t *diagnostics_panel;
 static lv_obj_t *diagnostics_label;
@@ -70,6 +71,20 @@ void ui_app_init(void)
     lv_obj_add_flag(shutter, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(shutter_edge, LV_OBJ_FLAG_HIDDEN);
 
+    demo_badge = lv_label_create(lv_layer_top());
+    lv_label_set_text(demo_badge, "DEMO");
+    lv_obj_set_pos(demo_badge, 264, 8);
+    lv_obj_set_style_text_color(demo_badge, lv_color_hex(0xE9D5FF), 0);
+    lv_obj_set_style_text_font(demo_badge, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_bg_color(demo_badge, lv_color_hex(0x6D28D9), 0);
+    lv_obj_set_style_bg_opa(demo_badge, LV_OPA_COVER, 0);
+    lv_obj_set_style_pad_left(demo_badge, 6, 0);
+    lv_obj_set_style_pad_right(demo_badge, 6, 0);
+    lv_obj_set_style_pad_top(demo_badge, 3, 0);
+    lv_obj_set_style_pad_bottom(demo_badge, 3, 0);
+    lv_obj_set_style_radius(demo_badge, 4, 0);
+    lv_obj_add_flag(demo_badge, LV_OBJ_FLAG_HIDDEN);
+
     diagnostics_panel = lv_obj_create(lv_layer_top());
     lv_obj_set_pos(diagnostics_panel, 8, 8);
     lv_obj_set_size(diagnostics_panel, 304, 224);
@@ -125,8 +140,16 @@ static void update_diagnostics(uint32_t now_ms)
     diagnostics_updated_ms = now_ms;
 }
 
-void ui_app_tick(uint32_t now_ms, const VehicleState *state, bool low_battery)
+void ui_app_tick(uint32_t now_ms, const VehicleState *state, bool low_battery,
+                 bool demo_active)
 {
+    if (demo_badge != NULL) {
+        if (demo_active) {
+            lv_obj_remove_flag(demo_badge, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(demo_badge, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
     if (dashboard == NULL || state == NULL) {
         return;
     }
