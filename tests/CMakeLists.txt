@@ -46,6 +46,22 @@ target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
 target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1 WS2812_HOST_TEST=1 TOUCH_PROBE_HOST_TEST=1 DIAGNOSTICS_HOST_TEST=1)
 
 add_test(NAME unit_tests COMMAND unit_tests)
+
+add_executable(demo_vehicle_state_tests
+    test_demo_vehicle_state.c
+    ../App/Src/demo_vehicle_state.c
+)
+target_include_directories(demo_vehicle_state_tests PRIVATE ../App/Inc)
+add_test(NAME demo_vehicle_state_tests COMMAND demo_vehicle_state_tests)
+
+add_executable(vehicle_state_source_tests
+    test_vehicle_state_source.c
+    ../App/Src/demo_vehicle_state.c
+    ../App/Src/vehicle_state_source.c
+)
+target_include_directories(vehicle_state_source_tests PRIVATE ../App/Inc)
+add_test(NAME vehicle_state_source_tests COMMAND vehicle_state_source_tests)
+
 add_test(NAME lvgl_make_manifest
     COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File ${CMAKE_CURRENT_SOURCE_DIR}/test_lvgl_make_manifest.ps1)
