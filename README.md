@@ -56,9 +56,15 @@ ctest --test-dir build-host --output-on-failure
 
 ## 烧录
 
-可使用 STM32CubeProgrammer 或 STM32CubeIDE，通过板载/外接 ST-LINK 下载
-`build_seed/wio_ai.elf` 或 `.hex`。若烧录 `.bin`，起始地址为 STM32H725 内部
-Flash 地址 `0x08000000`。首次上车前先断开动力系统，仅给 UI 板和灯带限流供电。
+可使用 STM32CubeProgrammer、STM32CubeIDE 或 J-Link，通过板载/外接调试器下载。优先使用
+`build_seed/wio_ai.hex`，因为 Intel HEX 文件包含每段数据的目标地址，能避免把应用写到错误
+位置。此构建使用 `STM32H725AEIX_PSRAM.ld`，其中 `.isr_vector` 位于
+`0x08020000`；若工具只能烧录原始 `build_seed/wio_ai.bin`，**必须**明确将起始地址设为
+`0x08020000`。
+
+不要再将该 BIN 写到 `0x08000000`，否则不会从本应用的向量表进入程序。除非已明确规划并
+验证目标 boot layout，也不要执行全片擦除；通常只烧录带地址的 HEX 即可。首次上车前先断开
+动力系统，仅给 UI 板和灯带限流供电。
 
 ## GUI 工具
 

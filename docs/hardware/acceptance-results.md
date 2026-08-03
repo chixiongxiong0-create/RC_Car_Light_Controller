@@ -50,6 +50,22 @@ git diff --check
 |---|---|---|---|---|---|
 | 2026-07-20 | PASS：CTest 4/4，100% | PASS：GNU Make exit 0；text 336300 B，data 564 B，bss 584416 B | PASS：ELF 6803592 B；BIN 336872 B；HEX 947605 B；MAP 4903975 B | PASS：exit 0 | 链接器报告ELF RWX LOAD segment警告；LF→CRLF提示；仅软件结果，不代表硬件通过 |
 
+## 2026-08-03 J-Link 烧录发现
+
+该构建的 `STM32H725AEIX_PSRAM.ld` 将 `.isr_vector` 放在 `0x08020000`。既有 J-Link
+发现说明：将无地址的 BIN 误写到 `0x08000000` 会阻止应用进入；改用携带地址的
+`wio_ai.hex` 正确烧录后，目标正常执行，且 PF5 为高电平。后续烧录优先使用 HEX；若只能
+使用 BIN，必须显式写入 `0x08020000`。在目标 boot layout 已被有意确定前，禁止全片擦除。
+
+2026-08-03 的全新构建已通过主机 CTest 6/6、固件 Make 构建，且 ELF/HEX 分别确认
+`.isr_vector = 0x08020000` 与扩展地址记录 `:020000040802F0`。不过本机 2020 年的
+J-Link V6.88 在烧录该 HEX 时于擦除后报告 `Programming failed`，没有完成写入；因此本次
+目标执行和 PF5 电平状态为 `BLOCKED`，必须使用支持 STM32H725 的烧录器恢复后重新验证。
+
+以下可视验收仍为 `PENDING`，必须由测试人员在真实硬件上观察并留存证据：三个页面的动画
+数值、`USER1` 页面切换、可见 `DEMO` 徽标，以及实时 MSP 接管；这些项目不因 J-Link 或
+主机验证而通过。
+
 ## 功能与故障注入矩阵
 
 状态仅可填写 `PENDING`、`PASS`、`FAIL` 或 `BLOCKED`。证据应为带时间戳的照片、视频、
