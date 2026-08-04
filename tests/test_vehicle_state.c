@@ -49,6 +49,7 @@ static void test_decodes_supported_frames(void)
     near(state->aux_page, 1.0f);
     assert(state->last_rc_ms == 100u && state->last_msp_ms == 100u);
     assert(state->link == LINK_OK);
+    assert(!state->battery_valid);
 
     input = frame(MSP_ATTITUDE, attitude_payload, sizeof attitude_payload);
     assert(vehicle_state_on_msp(&input, 110u));
@@ -63,6 +64,7 @@ static void test_decodes_supported_frames(void)
     state = vehicle_state_get();
     near(state->battery_v, 12.3f);
     assert(state->rssi == 845u);
+    assert(state->battery_valid);
 
     input = frame(MSP_RAW_GPS, gps_payload, sizeof gps_payload);
     assert(vehicle_state_on_msp(&input, 130u));

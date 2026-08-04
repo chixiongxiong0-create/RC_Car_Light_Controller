@@ -39,6 +39,38 @@ build_seed/wio_ai.hex
 build_seed/wio_ai.map
 ```
 
+应用固定使用 `STM32H725AEIX_PSRAM.ld`，向量表位于 `0x08020000`。sector 0 的稳定
+启动桩独立构建；它的固定入口会在每次启动时从 `0x08020000` 动态读取应用 MSP 和
+`Reset_Handler`，因此应用重链接后无需更新桩内地址：
+
+```powershell
+make -C boot_stub
+```
+
+生成 `boot_stub/build/wio_ai_boot_stub.{elf,hex,bin,map}`。仓库还跟踪了经相同源码生成的
+`boot_stub/wio_ai_boot_stub.hex`，供烧录和 fresh build 比对。根 ARM CMake 构建也会同时
+生成应用和该启动桩，并在所有构建配置中使用相同的 `0x08020000` 应用布局：
+
+```powershell
+cmake -S . -B build-arm -G Ninja `
+  '-DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake' `
+  '-DCMAKE_BUILD_TYPE=Release'
+cmake --build build-arm
+```
+
+完成启动桩与应用 Make 构建后，可执行工件检查，验证两侧向量地址、动态跳转反汇编、当前应用
+入口未嵌入启动桩，以及 fresh/tracked HEX 记录一致：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/inspect_boot_stub.ps1 `
+  -BootStubElf boot_stub/build/wio_ai_boot_stub.elf `
+  -BootStubBin boot_stub/build/wio_ai_boot_stub.bin `
+  -ApplicationElf build_seed/wio_ai.elf `
+  -BootStubHex boot_stub/build/wio_ai_boot_stub.hex `
+  -TrackedHex boot_stub/wio_ai_boot_stub.hex
+```
+
 清理并重建：
 
 ```powershell
@@ -57,14 +89,21 @@ ctest --test-dir build-host --output-on-failure
 ## 烧录
 
 可使用 STM32CubeProgrammer、STM32CubeIDE 或 J-Link，通过板载/外接调试器下载。优先使用
-`build_seed/wio_ai.hex`，因为 Intel HEX 文件包含每段数据的目标地址，能避免把应用写到错误
-位置。此构建使用 `STM32H725AEIX_PSRAM.ld`，其中 `.isr_vector` 位于
-`0x08020000`；若工具只能烧录原始 `build_seed/wio_ai.bin`，**必须**明确将起始地址设为
-`0x08020000`。
+Intel HEX，因为文件自带目标地址。完整可启动布局由两个工件组成：
 
-不要再将该 BIN 写到 `0x08000000`，否则不会从本应用的向量表进入程序。除非已明确规划并
-验证目标 boot layout，也不要执行全片擦除；通常只烧录带地址的 HEX 即可。首次上车前先断开
-动力系统，仅给 UI 板和灯带限流供电。
+1. 将 `boot_stub/wio_ai_boot_stub.hex` 写入 sector 0；其向量表从 `0x08000000` 开始。
+2. 将 `build_seed/wio_ai.hex` 写入应用区；其向量表从 `0x08020000` 开始。
+
+**空白设备、sector 0 已擦除的设备，或仍装有旧式绝对跳转向量的设备，必须写入两者；只写
+应用 HEX 不会让空白设备启动。** 只有已读回确认稳定启动桩存在时，后续应用升级才可只写
+地址化应用 HEX。启动桩在运行时读取应用向量，因此未来 `Reset_Handler` 移动不需要重建或
+修改 sector 0 跳转地址。
+
+若工具只能写原始 BIN，`boot_stub/build/wio_ai_boot_stub.bin` 的起始地址必须是
+`0x08000000`，`build_seed/wio_ai.bin` 的起始地址必须是 `0x08020000`，不得互换。写启动桩
+通常需要擦除整个 128 KiB sector 0；执行前必须确认其中没有其他 bootloader、校准或持久化
+数据。不要执行全片擦除，也不要把应用 BIN 写到 `0x08000000`。首次上车前先断开动力系统，
+仅给 UI 板和灯带限流供电。
 
 ## GUI 工具
 

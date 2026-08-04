@@ -35,6 +35,24 @@ bool low_battery_policy_update(LowBatteryPolicy *policy, float battery_v,
     return policy->low;
 }
 
+bool low_battery_policy_update_from_vehicle(LowBatteryPolicy *policy,
+                                            bool demo_active,
+                                            const VehicleState *real_state)
+{
+    if (policy == 0) {
+        return false;
+    }
+    if (demo_active) {
+        policy->low = false;
+        return false;
+    }
+    if (real_state == 0) {
+        return low_battery_policy_update(policy, 0.0f, false);
+    }
+    return low_battery_policy_update(policy, real_state->battery_v,
+                                     real_state->battery_valid);
+}
+
 bool low_battery_policy_is_configured(const LowBatteryPolicy *policy)
 {
     return policy != 0 && policy->cell_count != 0u;

@@ -62,6 +62,22 @@ add_executable(vehicle_state_source_tests
 target_include_directories(vehicle_state_source_tests PRIVATE ../App/Inc)
 add_test(NAME vehicle_state_source_tests COMMAND vehicle_state_source_tests)
 
+add_executable(low_battery_source_tests
+    test_low_battery_source.c
+    ../App/Src/demo_vehicle_state.c
+    ../App/Src/vehicle_state.c
+    ../App/Src/vehicle_state_source.c
+    ../App/Src/ui/low_battery_policy.c
+)
+target_include_directories(low_battery_source_tests PRIVATE ../App/Inc)
+add_test(NAME low_battery_source_tests COMMAND low_battery_source_tests)
+
+if(NOT MSVC)
+    target_link_libraries(demo_vehicle_state_tests PRIVATE m)
+    target_link_libraries(vehicle_state_source_tests PRIVATE m)
+    target_link_libraries(low_battery_source_tests PRIVATE m)
+endif()
+
 add_test(NAME lvgl_make_manifest
     COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File ${CMAKE_CURRENT_SOURCE_DIR}/test_lvgl_make_manifest.ps1)
@@ -71,3 +87,9 @@ add_test(NAME button_polling_manifest
 add_test(NAME watchdog_manifest
     COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File ${CMAKE_CURRENT_SOURCE_DIR}/test_watchdog_manifest.ps1)
+add_test(NAME demo_safety_manifest
+    COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+            -File ${CMAKE_CURRENT_SOURCE_DIR}/test_demo_safety_manifest.ps1)
+add_test(NAME boot_stub_manifest
+    COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+            -File ${CMAKE_CURRENT_SOURCE_DIR}/test_boot_stub_manifest.ps1)

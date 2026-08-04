@@ -199,6 +199,7 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         }
         state.battery_v = (float)frame->payload[0] * 0.1f;
         state.rssi = rssi;
+        state.battery_valid = true;
         break;
     }
     case MSP_RAW_GPS:

@@ -8,7 +8,9 @@
 typedef struct {
     bool real_seen;
     bool blending;
+    bool heading_target_valid;
     uint32_t blend_started_ms;
+    float real_heading_unwrapped;
     VehicleState demo;
     VehicleState blend_from;
     VehicleState selected;

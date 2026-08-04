@@ -23,6 +23,7 @@ typedef struct {
     uint16_t rssi;
     uint32_t mode_flags;
     uint8_t gps_sats;
+    bool battery_valid;
     bool armed;
     LinkState link;
     uint32_t last_msp_ms;

@@ -122,9 +122,9 @@ void App_Tick(uint32_t now_ms)
   button_input_poll(now_ms, read_user_button, set_user_button, NULL);
   input_manager_set_touch_available(diagnostics_get()->touch_available);
   input_manager_tick(now_ms, presented);
-  low_battery = low_battery_policy_update(
-      &battery_policy, presented->battery_v,
-      presented->battery_v > 0.0f);
+  low_battery = low_battery_policy_update_from_vehicle(
+      &battery_policy, vehicle_state_source_is_demo(&vehicle_source),
+      real_state);
 #ifdef BSP_CONFIG_SEEDSTUDIO
   if (ui_ready) {
     lvgl_port_tick(now_ms);

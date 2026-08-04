@@ -59,6 +59,10 @@ int main(void)
         assert(!samples[i].armed);
         assert(samples[i].link == LINK_STARTING);
         assert(samples[i].battery_v > 14.8f);
+        assert(!samples[i].battery_valid);
+        assert(samples[i].last_msp_ms == 0u);
+        assert(samples[i].last_rc_ms == 0u);
+        assert(samples[i].last_attitude_ms == 0u);
     }
 
     assert(any_float_changed(samples, 4u, offsetof(VehicleState, throttle)));
@@ -68,6 +72,18 @@ int main(void)
     assert(any_float_changed(samples, 4u, offsetof(VehicleState, heading_deg)));
     assert(any_u16_changed(samples, 4u, offsetof(VehicleState, rssi)));
     assert(any_u8_changed(samples, 4u, offsetof(VehicleState, gps_sats)));
+
+    for (uint8_t cells = 2u; cells <= 6u; ++cells) {
+        VehicleState cell_sample;
+        demo_vehicle_state_sample(2500u, cells, &cell_sample);
+        assert(cell_sample.battery_v > 3.7f * (float)cells);
+        assert(!cell_sample.battery_valid);
+    }
+
+    VehicleState unknown_cells;
+    demo_vehicle_state_sample(2500u, 0u, &unknown_cells);
+    assert(unknown_cells.battery_v > 0.0f);
+    assert(!unknown_cells.battery_valid);
 
     demo_vehicle_state_sample(5000u, 4u, &repeated_a);
     demo_vehicle_state_sample(5000u, 4u, &repeated_b);

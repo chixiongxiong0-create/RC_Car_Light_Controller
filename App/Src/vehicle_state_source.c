@@ -12,10 +12,9 @@ static float lerp(float from, float to, float progress)
     return from + (to - from) * progress;
 }
 
-static float heading_lerp(float from, float to, float progress)
+static float heading_delta(float from, float to)
 {
     float delta = to - from;
-    float result;
 
     while (delta > 180.0f) {
         delta -= 360.0f;
@@ -23,7 +22,13 @@ static float heading_lerp(float from, float to, float progress)
     while (delta < -180.0f) {
         delta += 360.0f;
     }
-    result = from + delta * progress;
+    return delta;
+}
+
+static float normalize_heading(float heading)
+{
+    float result = heading;
+
     while (result >= 360.0f) {
         result -= 360.0f;
     }
@@ -52,6 +57,7 @@ void vehicle_state_source_note_real(VehicleStateSource *source, uint32_t now_ms)
 
     source->real_seen = true;
     source->blending = true;
+    source->heading_target_valid = false;
     source->blend_started_ms = now_ms;
     source->blend_from = source->selected;
 }
@@ -75,6 +81,7 @@ void vehicle_state_source_tick(VehicleStateSource *source, uint32_t now_ms,
     }
 
     source->selected = *real_state;
+    source->selected.heading_deg = normalize_heading(real_state->heading_deg);
     if (source->blending) {
         const uint32_t elapsed_ms = now_ms - source->blend_started_ms;
         const float progress = elapsed_ms >= BLEND_DURATION_MS
@@ -89,9 +96,20 @@ void vehicle_state_source_tick(VehicleStateSource *source, uint32_t now_ms,
                                          real_state->roll_deg, progress);
         source->selected.pitch_deg = lerp(source->blend_from.pitch_deg,
                                           real_state->pitch_deg, progress);
-        source->selected.heading_deg = heading_lerp(source->blend_from.heading_deg,
-                                                    real_state->heading_deg,
-                                                    progress);
+        if (!source->heading_target_valid) {
+            source->real_heading_unwrapped =
+                source->blend_from.heading_deg +
+                heading_delta(source->blend_from.heading_deg,
+                              real_state->heading_deg);
+            source->heading_target_valid = true;
+        } else {
+            source->real_heading_unwrapped +=
+                heading_delta(source->real_heading_unwrapped,
+                              real_state->heading_deg);
+        }
+        source->selected.heading_deg = normalize_heading(
+            lerp(source->blend_from.heading_deg,
+                 source->real_heading_unwrapped, progress));
         source->selected.battery_v = lerp(source->blend_from.battery_v,
                                           real_state->battery_v, progress);
         if (elapsed_ms >= BLEND_DURATION_MS) {

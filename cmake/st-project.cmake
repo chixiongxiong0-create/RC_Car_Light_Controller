@@ -3,6 +3,10 @@
 
 function(add_st_target_properties TARGET_NAME)
 
+if(NOT WIO_AI_APP_LINKER_SCRIPT)
+    message(FATAL_ERROR "WIO_AI_APP_LINKER_SCRIPT must select the application layout")
+endif()
+
 target_compile_definitions(
     ${TARGET_NAME} PRIVATE
     "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:ASM>>:DEBUG>"
@@ -82,9 +86,7 @@ target_link_options(
     "$<$<NOT:$<CONFIG:Debug>>:-mcpu=cortex-m7>"
     "$<$<NOT:$<CONFIG:Debug>>:-mfpu=fpv5-d16>"
     "$<$<NOT:$<CONFIG:Debug>>:-mfloat-abi=hard>"
-    -T
-    "$<$<CONFIG:Debug>:${PROJECT_SOURCE_DIR}/STM32H725AEIX_PSRAM.ld>"
-    "$<$<NOT:$<CONFIG:Debug>>:${PROJECT_SOURCE_DIR}/STM32H725AEIX_FLASH.ld>"
+    "-T${WIO_AI_APP_LINKER_SCRIPT}"
 )
 
 target_sources(

@@ -36,7 +36,4 @@ void demo_vehicle_state_sample(uint32_t now_ms, uint8_t battery_cells,
     out->gps_sats = (uint8_t)(9u + ((now_ms / 1000u) % 5u));
     out->armed = false;
     out->link = LINK_STARTING;
-    out->last_msp_ms = now_ms;
-    out->last_rc_ms = now_ms;
-    out->last_attitude_ms = now_ms;
 }

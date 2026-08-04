@@ -9,7 +9,7 @@
 | 阶段 | 状态 | 完成条件/下一步 |
 |---|---|---|
 | 接线、INAV、构建/烧录文档 | READY | 实车前按现场型号补充被测配置 |
-| 软件预检 | PASS（2026-07-20） | 固件硬件配置改变后需重新运行 |
+| 软件预检 | PASS（2026-08-04） | 固件硬件配置改变后需重新运行 |
 | 功能与故障注入 | PENDING | 真实飞控、接收机、UI板和供电就绪后执行 |
 | 屏幕阻断验收 | PENDING | 实测横屏/RGB、动态撕裂及连续60 s FPS |
 | WS2812波形与电流 | PENDING | 逻辑分析仪、限流电源、10颗和30颗灯带就绪后执行 |
@@ -42,33 +42,49 @@
 cmake -S tests -B build-host -G Ninja
 cmake --build build-host
 ctest --test-dir build-host --output-on-failure
+make -C boot_stub
 make bsp_config_seedstudio=1 -j4
+cmake -S . -B build-arm -G Ninja `
+  '-DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake' `
+  '-DCMAKE_BUILD_TYPE=Release'
+cmake --build build-arm
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/inspect_boot_stub.ps1 `
+  -BootStubElf boot_stub/build/wio_ai_boot_stub.elf `
+  -BootStubBin boot_stub/build/wio_ai_boot_stub.bin `
+  -ApplicationElf build_seed/wio_ai.elf `
+  -BootStubHex boot_stub/build/wio_ai_boot_stub.hex `
+  -TrackedHex boot_stub/wio_ai_boot_stub.hex
 git diff --check
 ```
 
 | 日期 | 主机测试 | 固件构建 | 产物 | `git diff --check` | 备注 |
 |---|---|---|---|---|---|
 | 2026-07-20 | PASS：CTest 4/4，100% | PASS：GNU Make exit 0；text 336300 B，data 564 B，bss 584416 B | PASS：ELF 6803592 B；BIN 336872 B；HEX 947605 B；MAP 4903975 B | PASS：exit 0 | 链接器报告ELF RWX LOAD segment警告；LF→CRLF提示；仅软件结果，不代表硬件通过 |
+| 2026-08-04 | PASS：fresh CTest 9/9，100% | PASS：fresh SeedStudio Make；root ARM CMake Debug/Release；boot stub Make | PASS：应用 `.isr_vector=0x08020000`，`sinf` 已解析；stub 100 B，向量/固定入口/动态跳转与 tracked HEX 比对通过 | PASS：exit 0 | 未烧录硬件；stable stub 启动验证、60 s 动态观察和四小时浸泡仍为 `PENDING` |
 
 ## 地址化 HEX 烧录：历史发现与当前状态
 
-该构建的 `STM32H725AEIX_PSRAM.ld` 将 `.isr_vector` 放在 `0x08020000`。后续烧录优先
-使用携带地址的 `wio_ai.hex`；若只能使用原始 BIN，必须显式写入 `0x08020000`。在目标
-boot layout 已被有意确定前，禁止全片擦除。
+正式布局由 sector 0 的稳定启动桩和 `0x08020000` 的应用组成。启动桩固定从
+`0x08020000` 的向量 word 0/1 动态加载 MSP 与 `Reset_Handler`；应用重链接后入口移动不再
+要求改写桩源码。空白设备、sector 0 已擦除的设备或仍装有旧静态向量的设备必须依次烧录
+`boot_stub/wio_ai_boot_stub.hex` 和地址化 `wio_ai.hex`；应用 HEX 单独不能启动空白设备。
+在验证完整 boot layout 前禁止全片擦除。
 
 **历史发现（不构成本次验收）**：无地址 BIN 曾被误写到 `0x08000000`，导致应用无法进入；
 随后一次地址化 HEX 操作曾观察到正常执行和 PF5 高电平。这项历史观察不等同于当前板卡的
 通过结论，必须在完整启动布局恢复后重新验证。
 
-2026-08-03 的全新构建通过主机 CTest 6/6、固件 Make 构建，且 ELF/HEX 分别确认
+2026-08-03 的全新构建通过主机 CTest 6/6、固件 Make 构建，且应用 ELF/HEX 分别确认
 `.isr_vector = 0x08020000` 与扩展地址记录 `:020000040802F0`。经明确批准后，J-Link V8.18
-已写入并校验仅影响 sector 0 的最小启动向量（131072 bytes）。3 秒后，`PC=0x0802C7D6`、
-`IPSR=0`；`0x08000000` 与 `0x08020000` 的前两个字均为 `24050000 0805CCD9`；
-`VTOR=0x08020000`；GPIOF `ODR=0x20`（PF5 高）。最后已执行 `go`，使 CPU 继续运行。
+写入并校验了仅含 MSP 与当次绝对 `Reset_Handler=0x0805CCD9` 的旧式 8-byte 启动向量；
+131072 bytes 是 sector 0 的擦除粒度，不是该旧 HEX 的有效载荷大小。3 秒后观察到
+`PC=0x0802C7D6`、`IPSR=0`、`VTOR=0x08020000` 和 PF5 高，随后执行了 `go`。
 
-因此最小启动向量、复位进入应用、PF5 高电平和持续运行均为 `PASS`。以下可视验收仍为
-`PENDING`，必须由测试人员在真实硬件上观察并留存证据：三个页面的动画数值、`USER1` 页面
-切换、可见 `DEMO` 徽标，以及实时 MSP 接管；这些项目不因 J-Link 或主机验证而通过。
+这组证据只支持“旧静态向量下短时执行 `PASS`”，不支持持续运行或浸泡 `PASS`。本轮新增的
+稳定启动桩未烧录硬件，其 sector-0 编程、复位启动和读回验证均为 `PENDING`，由后续控制器
+执行。三个页面动画、`USER1` 切换、可见 `DEMO` 徽标、实时 MSP 接管、60 s 动态观察和
+四小时浸泡也继续为 `PENDING`；这些项目不因主机测试、构建或工件检查而通过。
 
 ## 功能与故障注入矩阵
 

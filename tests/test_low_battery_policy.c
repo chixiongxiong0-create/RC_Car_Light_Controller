@@ -39,6 +39,10 @@ void test_low_battery_policy(void)
     assert(low_battery_policy_update(&policy, 14.79f, true));
     assert(!low_battery_policy_update(&policy, 14.80f, true));
 
+    policy = fresh(5u);
+    assert(low_battery_policy_update(&policy, 17.5f, true));
+    assert(!low_battery_policy_update(&policy, 18.50f, true));
+
     policy = fresh(6u);
     assert(low_battery_policy_update(&policy, 21.0f, true));
     assert(!low_battery_policy_update(&policy, 22.20f, true));
