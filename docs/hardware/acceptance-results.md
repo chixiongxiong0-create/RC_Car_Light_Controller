@@ -10,13 +10,15 @@
 |---|---|---|
 | 接线、INAV、构建/烧录文档 | READY | 实车前按现场型号补充被测配置 |
 | 软件预检 | PASS（2026-08-04） | 固件硬件配置改变后需重新运行 |
+| 稳定启动桩烧录、复位、短时运行 | PASS（2026-08-04） | 仅覆盖启动交接、短时 CPU 运行和 PF5；不代表连续运行或视觉验收 |
 | 功能与故障注入 | PENDING | 真实飞控、接收机、UI板和供电就绪后执行 |
 | 屏幕阻断验收 | PENDING | 实测横屏/RGB、动态撕裂及连续60 s FPS |
 | WS2812波形与电流 | PENDING | 逻辑分析仪、限流电源、10颗和30颗灯带就绪后执行 |
 | 看门狗/触摸 | PENDING | 分别使用DEBUG/生产固件和实际I2C4硬件执行 |
 | 四小时浸泡 | PENDING | 其余阻断项通过后执行并保存原始日志 |
 
-当前任务 12 处于“预备完成、等待真实硬件”状态，不代表最终验收完成。
+当前任务 12 已取得稳定启动链的短时硬件证据，但其余真实硬件阻断项尚未完成，不代表最终
+验收完成。
 
 ## 被测配置
 
@@ -61,7 +63,7 @@ git diff --check
 | 日期 | 主机测试 | 固件构建 | 产物 | `git diff --check` | 备注 |
 |---|---|---|---|---|---|
 | 2026-07-20 | PASS：CTest 4/4，100% | PASS：GNU Make exit 0；text 336300 B，data 564 B，bss 584416 B | PASS：ELF 6803592 B；BIN 336872 B；HEX 947605 B；MAP 4903975 B | PASS：exit 0 | 链接器报告ELF RWX LOAD segment警告；LF→CRLF提示；仅软件结果，不代表硬件通过 |
-| 2026-08-04 | PASS：fresh CTest 9/9，100% | PASS：fresh SeedStudio Make；root ARM CMake Debug/Release；boot stub Make | PASS：应用 `.isr_vector=0x08020000`，`sinf` 已解析；stub 100 B，向量/固定入口/动态跳转与 tracked HEX 比对通过 | PASS：exit 0 | 未烧录硬件；stable stub 启动验证、60 s 动态观察和四小时浸泡仍为 `PENDING` |
+| 2026-08-04 | PASS：fresh CTest 9/9，100% | PASS：fresh SeedStudio Make；root ARM CMake Debug/Release；boot stub Make | PASS：应用 `.isr_vector=0x08020000`，`sinf` 已解析；stub 100 B，向量/固定入口/动态跳转与 tracked HEX 比对通过 | PASS：exit 0 | 本行仅记录软件预检；随后完成的 stable stub 硬件短时证据见下文，60 s 与四小时浸泡仍为 `PENDING` |
 
 ## 地址化 HEX 烧录：历史发现与当前状态
 
@@ -81,10 +83,21 @@ git diff --check
 131072 bytes 是 sector 0 的擦除粒度，不是该旧 HEX 的有效载荷大小。3 秒后观察到
 `PC=0x0802C7D6`、`IPSR=0`、`VTOR=0x08020000` 和 PF5 高，随后执行了 `go`。
 
-这组证据只支持“旧静态向量下短时执行 `PASS`”，不支持持续运行或浸泡 `PASS`。本轮新增的
-稳定启动桩未烧录硬件，其 sector-0 编程、复位启动和读回验证均为 `PENDING`，由后续控制器
-执行。三个页面动画、`USER1` 切换、可见 `DEMO` 徽标、实时 MSP 接管、60 s 动态观察和
-四小时浸泡也继续为 `PENDING`；这些项目不因主机测试、构建或工件检查而通过。
+这组旧证据只支持“旧静态向量下短时执行 `PASS`”，不支持持续运行或浸泡 `PASS`。
+
+2026-08-04，J-Link V8.18 随后写入 stable stub 与 fresh 地址化应用，两个工件均报告
+`Verify O.K.`。本次稳定启动链证据如下：
+
+| 验证项 | 证据 | 状态 |
+|---|---|---|
+| stable stub 与 fresh app 写入/校验 | sector 0 读回 `SP=0x24050000`、`reset=0x08000041`；应用 `0x08020000` 读回 `0x24050000 / 0x0805CD85` | PASS |
+| 固定入口与动态交接 | 固定代码位于 `0x08000040`，动态读取应用向量；复位 3 秒后 `PC=0x08023E88`、`IPSR=0`、`VTOR=0x08020000` | PASS |
+| 短时运行与 PF5 | 稍后探针 `PC=0x0805EE78`、`IPSR=0`、GPIOF `ODR=0x20`，`CFSR=0`、`HFSR=0` | PASS |
+| 连续/长时与视觉验收 | 没有 60 秒连续观察、三页视觉检查或浸泡证据 | PENDING |
+
+两次 J-Link 脚本最后均执行 `go`。以上仅支持 stable stub 硬件启动、短时运行和 PF5 高
+`PASS`，不支持 continuous/long-run `PASS`。三个页面动画、`USER1` 切换、可见 `DEMO`
+徽标、实时 MSP 接管、60 s 动态观察和四小时浸泡继续为 `PENDING`。
 
 ## 功能与故障注入矩阵
 

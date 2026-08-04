@@ -6,7 +6,7 @@ Base commit: `09f5be2`
 
 Scope: all binding fixes in `final-fix-brief.md`
 
-Result: software implementation and artifact verification PASS; hardware programming and hardware acceptance remain PENDING.
+Result: software implementation and artifact verification PASS. A later J-Link follow-up verified stable-stub programming, reset handoff, short-run execution, and PF5 high; visual, live-MSP, 60-second, and soak acceptance remain PENDING.
 
 ## Implemented fixes
 
@@ -43,7 +43,7 @@ Result: software implementation and artifact verification PASS; hardware program
 
 - README now requires both the stable stub HEX and addressed application HEX for blank, erased, or legacy-vector devices; it states that application HEX alone cannot boot such a device.
 - Raw BIN addresses are documented as `0x08000000` for the stub and `0x08020000` for the application.
-- The prior 3-second snapshot plus final `go` is recorded only as a legacy static-vector short-run PASS. Stable-stub hardware boot, 60-second display observation, and the four-hour soak remain PENDING.
+- The prior 3-second snapshot plus final `go` is recorded only as a legacy static-vector short-run PASS. A later stable-stub follow-up is recorded separately as hardware boot and short-run PASS; 60-second display observation and the four-hour soak remain PENDING.
 
 ## TDD evidence
 
@@ -104,10 +104,22 @@ Fresh Ninja builds with the GNU Arm toolchain:
 - unrelated modified/untracked files were preserved and excluded from the commit scope
 - no hardware was flashed, erased, reset, or otherwise programmed in this fix wave
 
+## Hardware follow-up evidence (2026-08-04)
+
+After the software-only fix wave, a controller used J-Link V8.18 to program the tracked stable stub and fresh addressed application. Both writes reported `Verify O.K.`.
+
+- Sector-0 readback: initial SP `0x24050000`, reset vector word `0x08000041`; the fixed code at `0x08000040` dynamically reads the application vector.
+- Application-vector readback at `0x08020000`: `0x24050000 / 0x0805CD85` (Thumb bit included in the reset vector word).
+- Three seconds after reset: `PC=0x08023E88`, `IPSR=0`, `VTOR=0x08020000`.
+- Later runtime probe: `PC=0x0805EE78`, `IPSR=0`, GPIOF `ODR=0x20` (PF5 high), `CFSR=0`, and `HFSR=0`.
+- Both scripts ended with `go`.
+
+This evidence marks stable-stub programming/readback, reset entry into the fresh application, short-run CPU execution, and PF5 high as PASS. It does not establish continuous or long-duration operation.
+
 ## Remaining concerns and required hardware follow-up
 
-1. Artifact inspection does not establish hardware boot PASS. The controller must later program the stable stub and addressed app HEX, reset from power-on, verify/read back sector 0 and the application vector, and retain evidence.
+1. Stable-stub hardware boot evidence is limited to successful programming/verification, vector readback, reset handoff, and two short live snapshots. It does not establish continuous or long-duration operation.
 2. Programming sector 0 erases a 128 KiB sector. Before doing so, confirm it contains no other bootloader, calibration, or persistent data and confirm option bytes boot from `0x08000000`. Do not mass erase.
 3. The existing ATTITUDE filter in `vehicle_state.c` performs ordinary scalar heading low-pass filtering. The required selector takeover blend is now wrap-continuous, but a separate end-to-end requirement for wrap-aware MSP heading filtering would need its own change and tests.
 4. The existing application link still reports an RWX LOAD-segment warning, and the fresh Make build reports existing unused/static-declaration warnings. Neither caused a build or test failure in this scope.
-5. Stable-stub reset boot, visual UI/Demo behavior, live MSP takeover, 60-second dynamic display observation, and four-hour soak remain PENDING.
+5. Visual UI/Demo behavior, `USER1`, the visible `DEMO` badge, live MSP takeover, 60-second dynamic display observation, and four-hour soak remain PENDING.
