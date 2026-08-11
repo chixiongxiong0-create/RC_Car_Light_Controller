@@ -148,6 +148,39 @@ static void test_short_rc_frame_resets_lighting_aux_channels_to_safe_value(void)
     near(state->aux9, -1.0f);
 }
 
+static void test_short_rc_frame_clears_lighting_aux_while_lost(void)
+{
+    const uint8_t full_rc_payload[] = {
+        0xe8, 0x03, 0xdc, 0x05, 0xd0, 0x07, 0xdc, 0x05,
+        0xd0, 0x07, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05,
+        0xdc, 0x05, 0xd0, 0x07, 0xd0, 0x07, 0xd0, 0x07,
+        0xd0, 0x07
+    };
+    const uint8_t short_rc_payload[] = {
+        0xd0, 0x07, 0xdc, 0x05, 0xe8, 0x03, 0xdc, 0x05,
+        0xe8, 0x03
+    };
+
+    vehicle_state_init();
+    MspFrame input = frame(MSP_RC, full_rc_payload, sizeof full_rc_payload);
+    assert(vehicle_state_on_msp(&input, 100u));
+    vehicle_state_tick(2100u);
+    assert(vehicle_state_get()->link == LINK_LOST);
+    const VehicleState frozen = *vehicle_state_get();
+
+    input = frame(MSP_RC, short_rc_payload, sizeof short_rc_payload);
+    assert(vehicle_state_on_msp(&input, 2200u));
+    const VehicleState *state = vehicle_state_get();
+    assert(state->link == LINK_LOST);
+    near(state->steering, frozen.steering);
+    near(state->throttle, frozen.throttle);
+    near(state->aux_page, frozen.aux_page);
+    near(state->aux6, -1.0f);
+    near(state->aux7, -1.0f);
+    near(state->aux8, -1.0f);
+    near(state->aux9, -1.0f);
+}
+
 static void test_channel_mapping_filter_and_deadband(void)
 {
     const uint8_t center[] = {
@@ -351,6 +384,7 @@ void test_vehicle_state(void)
     test_decodes_lighting_aux_channels();
     test_clamps_lighting_aux_channels();
     test_short_rc_frame_resets_lighting_aux_channels_to_safe_value();
+    test_short_rc_frame_clears_lighting_aux_while_lost();
     test_channel_mapping_filter_and_deadband();
     test_malformed_is_atomic();
     test_malformed_gps_does_not_advance_recovery();

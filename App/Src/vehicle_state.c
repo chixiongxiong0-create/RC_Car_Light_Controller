@@ -166,6 +166,12 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         }
         state.last_rc_ms = now_ms;
         if (freeze_fast && state.link != LINK_OK) {
+            if (!has_lighting_channels) {
+                state.aux6 = -1.0f;
+                state.aux7 = -1.0f;
+                state.aux8 = -1.0f;
+                state.aux9 = -1.0f;
+            }
             return true;
         }
         if (!have_rc) {
