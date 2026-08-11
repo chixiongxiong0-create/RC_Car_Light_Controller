@@ -119,3 +119,44 @@ roof pixels 4..N-1, exact submission count/call count, frame identity, returned
 diagnostic current, and active-off writes on each starting/stale/lost tick.
 There is no demo/presented parameter in the service API. Existing BSP and RWX
 linker warnings remain; no new warning or physical-hardware concern was added.
+
+## Review Fix Round 2: Guard Real-State Call Ordering
+
+### RED Evidence
+
+Added `tests/test_lighting_app_wiring.cmake` and registered it as the
+`lighting_app_wiring` CTest before changing `App_Tick`. The focused command
+`ctest --test-dir build-host-task4-fix2 -R '^lighting_app_wiring$'
+--output-on-failure` failed with `Physical lighting must run before presented
+demo state is acquired`, proving the current ordering was unguarded.
+
+### Implementation
+
+- The portable CMake-script test extracts only the `App_Tick` body, requires
+  exactly one `lighting_tick` call with `real_state`, forbids any call with
+  `presented`, and requires the physical call to precede acquisition of the
+  presentation/demo pointer.
+- Moved raw low-battery evaluation and `lighting_tick(now_ms, real_state,
+  low_battery)` immediately after `vehicle_state_source_tick`; only afterward
+  does the application obtain `presented` and continue the unchanged input/UI
+  flow.
+- Low-battery evaluation still uses the source's demo ownership flag and the
+  raw real vehicle state.
+
+### Verification
+
+- Focused GREEN: `ctest --test-dir build-host-task4-fix2 -R
+  '^lighting_app_wiring$' --output-on-failure` - passed 1/1.
+- Full host: `cmake --build build-host-task4-fix2` followed by `ctest
+  --test-dir build-host-task4-fix2 --output-on-failure` - passed 10/10.
+- Fresh short-path ARM Make build from `E:/workspace/fpv/r4`:
+  `make bsp_config_seedstudio=1 BUILD_DIR=b7 -j4` - exit 0; generated ELF
+  (6,284,420 bytes), HEX (960,046 bytes), and BIN (341,292 bytes).
+- `.isr_vector` remains at `0x08020000`; `git diff --check` passed.
+
+### Self-review and Concerns
+
+The new guard fails for a `presented` argument, a missing/duplicate lighting
+call, or any future move below presentation-state acquisition. Physical work
+remains non-blocking and now completes earlier in the same tick. Existing BSP
+and RWX warnings and pending physical bench acceptance remain the only concerns.

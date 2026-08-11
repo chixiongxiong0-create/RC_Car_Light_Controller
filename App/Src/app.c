@@ -133,13 +133,14 @@ void App_Tick(uint32_t now_ms)
   real_state = vehicle_state_get();
   vehicle_state_source_tick(&vehicle_source, now_ms, APP_BATTERY_CELL_COUNT,
                             real_state);
+  low_battery = low_battery_policy_update_from_vehicle(
+      &battery_policy, vehicle_state_source_is_demo(&vehicle_source),
+      real_state);
+  lighting_tick(now_ms, real_state, low_battery);
   presented = vehicle_state_source_get(&vehicle_source);
   button_input_poll(now_ms, read_user_button, set_user_button, NULL);
   input_manager_set_touch_available(diagnostics_get()->touch_available);
   input_manager_tick(now_ms, presented);
-  low_battery = low_battery_policy_update_from_vehicle(
-      &battery_policy, vehicle_state_source_is_demo(&vehicle_source),
-      real_state);
 #ifdef BSP_CONFIG_SEEDSTUDIO
   if (ui_ready) {
     lvgl_port_tick(now_ms);
@@ -150,7 +151,6 @@ void App_Tick(uint32_t now_ms)
 #else
   diagnostics_watchdog_mark(DIAG_PROGRESS_UI);
 #endif
-  lighting_tick(now_ms, real_state, low_battery);
   const uint32_t cycle = DWT->CYCCNT;
   const uint32_t loop_us = (uint32_t)(((uint64_t)(cycle - last_cycle) * 1000000u) /
                                       SystemCoreClock);

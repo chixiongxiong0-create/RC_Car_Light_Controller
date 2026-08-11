@@ -96,6 +96,9 @@ add_test(NAME watchdog_manifest
 add_test(NAME demo_safety_manifest
     COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File ${CMAKE_CURRENT_SOURCE_DIR}/test_demo_safety_manifest.ps1)
+add_test(NAME lighting_app_wiring
+    COMMAND ${CMAKE_COMMAND} -P
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_lighting_app_wiring.cmake)
 add_test(NAME boot_stub_manifest
     COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File ${CMAKE_CURRENT_SOURCE_DIR}/test_boot_stub_manifest.ps1)
