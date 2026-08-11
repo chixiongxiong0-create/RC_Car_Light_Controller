@@ -283,9 +283,6 @@ void lighting_controller_render(LightingController *controller,
                                 LightingFrame *frame,
                                 size_t pixel_count)
 {
-    (void)now_ms;
-    (void)low_battery;
-    (void)board_fault;
     if (frame == NULL) {
         return;
     }
@@ -309,4 +306,6 @@ void lighting_controller_render(LightingController *controller,
     if (!render_warning(now_ms, low_battery, board_fault, frame)) {
         render_roof(controller, now_ms, state, frame, pixel_count);
     }
+    led_limit_current(frame->pixels, pixel_count, LED_CURRENT_BUDGET_MA);
+    frame->estimated_ma = led_estimated_ma(frame->pixels, pixel_count);
 }

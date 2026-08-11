@@ -26,10 +26,18 @@ static void assert_frame_off(const LightingFrame *frame)
 {
     assert(frame->front_duty == 0u);
     assert(frame->roof_spot_duty == 0u);
+    assert(frame->estimated_ma == 0u);
     assert(frame->roof_mode == ROOF_LIGHT_OFF);
     for (size_t i = 0u; i < LED_MAX_PIXELS; ++i) {
         assert_rgb(frame->pixels[i], (LedRgb){0u, 0u, 0u});
     }
+}
+
+static void assert_current_accounted(const LightingFrame *frame, size_t count)
+{
+    const uint32_t measured = led_estimated_ma(frame->pixels, count);
+    assert(frame->estimated_ma == measured);
+    assert(frame->estimated_ma <= LED_CURRENT_BUDGET_MA);
 }
 
 static void test_fail_safe_duties_and_bounds(void)
@@ -47,6 +55,7 @@ static void test_fail_safe_duties_and_bounds(void)
                                &frame, 4u);
     assert(frame.front_duty == 0u);
     assert(frame.roof_spot_duty == 1000u);
+    assert_current_accounted(&frame, 4u);
     for (size_t i = 0u; i < 4u; ++i) {
         assert_rgb(frame.pixels[i], (LedRgb){12u, 0u, 0u});
     }
@@ -115,6 +124,7 @@ static void test_fail_safe_duties_and_bounds(void)
     for (size_t i = 4u; i < LED_MAX_PIXELS; ++i) {
         assert_rgb(guarded.frame.pixels[i], (LedRgb){0u, 0u, 0u});
     }
+    assert_current_accounted(&guarded.frame, LED_MAX_PIXELS);
 }
 
 static void assert_decorative_ceiling(const LightingFrame *frame,

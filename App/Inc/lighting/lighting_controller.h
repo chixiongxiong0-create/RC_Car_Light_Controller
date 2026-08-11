@@ -22,6 +22,7 @@ typedef enum {
 typedef struct {
     uint16_t front_duty;
     uint16_t roof_spot_duty;
+    uint32_t estimated_ma;
     RoofLightMode roof_mode;
     LedRgb pixels[LED_MAX_PIXELS];
 } LightingFrame;
