@@ -3,7 +3,7 @@
 #include "diagnostics.h"
 #include "app_config.h"
 #include "input_manager.h"
-#include "lighting/lighting_controller.h"
+#include "lighting/lighting_service.h"
 #include "msp/msp_client.h"
 #include "platform/lighting_output_port.h"
 #include "platform/msp_uart.h"
@@ -22,8 +22,7 @@
 #include "wio_lite_ai.h"
 
 static MspClient client;
-static LightingController lighting_controller;
-static LightingFrame lighting_frame;
+static LightingService lighting_service;
 static LowBatteryPolicy battery_policy;
 static VehicleStateSource vehicle_source;
 #ifdef BSP_CONFIG_SEEDSTUDIO
@@ -61,25 +60,34 @@ static void set_user_button(bool pressed, uint32_t now_ms, void *ctx)
   input_manager_set_button(pressed, now_ms);
 }
 
+static void apply_lighting(uint16_t front_duty, uint16_t roof_spot_duty,
+                           void *ctx)
+{
+  (void)ctx;
+  lighting_output_port_apply(front_duty, roof_spot_duty);
+}
+
+static bool submit_lighting(uint32_t now_ms, const LedRgb *pixels,
+                            size_t count, void *ctx)
+{
+  (void)ctx;
+  return ws2812_port_submit(now_ms, pixels, count);
+}
+
 static void lighting_tick(uint32_t now_ms, const VehicleState *real_state,
                           bool low_battery)
 {
   const bool board_fault = diagnostics_get()->state == HEALTH_FAULT;
-  lighting_controller_render(&lighting_controller, now_ms, real_state,
-                             low_battery, board_fault, &lighting_frame,
-                             APP_LED_PIXEL_COUNT);
-  lighting_output_port_apply(lighting_frame.front_duty,
-                             lighting_frame.roof_spot_duty);
-  led_current_ma = lighting_frame.estimated_ma;
-  (void)ws2812_port_submit(now_ms, lighting_frame.pixels,
-                           APP_LED_PIXEL_COUNT);
+  led_current_ma = lighting_service_tick(
+      &lighting_service, now_ms, real_state, low_battery, board_fault,
+      APP_LED_PIXEL_COUNT, apply_lighting, submit_lighting, NULL);
   diagnostics_watchdog_mark(DIAG_PROGRESS_LED);
 }
 
 void App_Init(void)
 {
   lighting_output_port_init();
-  lighting_controller_init(&lighting_controller);
+  lighting_service_init(&lighting_service);
   MX_USART3_UART_Init();
   msp_uart_init();
   vehicle_state_init();

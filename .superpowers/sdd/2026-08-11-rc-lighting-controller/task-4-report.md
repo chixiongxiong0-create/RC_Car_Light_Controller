@@ -70,3 +70,52 @@ The ARM build retains pre-existing unused BSP declaration/variable warnings and
 the linker warning that the ELF has an RWX LOAD segment. No Task 4 warnings or
 errors were introduced. Physical wiring and polarity still require the planned
 bench acceptance before lamps are permanently connected.
+
+## Review Fix Round 1: Host-Testable Application Wiring
+
+### RED Evidence
+
+Added `tests/test_lighting_service.c` and the public service interface before
+adding any implementation. The focused command
+`cmake --build build-host-task4-final --target unit_tests` failed at link time
+with undefined references to `lighting_service_init` and
+`lighting_service_tick`. This proved the tests required the missing integration
+seam rather than passing against the pre-existing direct application wiring.
+
+### Implementation
+
+- Added `LightingService`, which owns one `LightingController` and its current
+  `LightingFrame` and accepts exactly one `VehicleState` argument per tick.
+- The service renders with the real policy, invokes the apply callback once on
+  every tick (including zero/zero for starting, stale, and lost links), submits
+  the exact same combined frame and count once, and returns the frame's
+  post-limit `estimated_ma`.
+- Replaced the direct application wiring with thin non-blocking callbacks around
+  `lighting_output_port_apply` and `ws2812_port_submit`; `App_Tick` passes only
+  `real_state` to the physical service.
+- Registered `lighting_service.c` exactly once in host CMake, firmware CMake,
+  and Make builds.
+
+### Verification
+
+- Focused GREEN: `cmake --build build-host-task4-final --target unit_tests`
+  followed by `ctest --test-dir build-host-task4-final -R '^unit_tests$'
+  --output-on-failure` - passed 1/1.
+- Fresh full host: `cmake -S tests -B build-host-task4-fix1 -G Ninja`,
+  `cmake --build build-host-task4-fix1`, and `ctest --test-dir
+  build-host-task4-fix1 --output-on-failure` - passed 9/9.
+- Fresh short-path ARM Make build from `E:/workspace/fpv/r4`:
+  `make bsp_config_seedstudio=1 BUILD_DIR=b6 -j4` - exit 0; generated
+  ELF (6,284,436 bytes), HEX (960,046 bytes), and BIN (341,292 bytes).
+- `.isr_vector` remains at `0x08020000`; the ELF contains
+  `lighting_service_init`, `lighting_service_tick`,
+  `lighting_output_port_apply`, and `ws2812_port_submit`.
+
+### Self-review and Concerns
+
+The tests use the real lighting controller and fake only the two hardware
+boundaries. Literal assertions cover valid AUX duty flow, rear pixels 0..3,
+roof pixels 4..N-1, exact submission count/call count, frame identity, returned
+diagnostic current, and active-off writes on each starting/stale/lost tick.
+There is no demo/presented parameter in the service API. Existing BSP and RWX
+linker warnings remain; no new warning or physical-hardware concern was added.

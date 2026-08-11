@@ -23,6 +23,7 @@ add_executable(unit_tests
     test_showcase_model.c
     test_led_controller.c
     test_lighting_controller.c
+    test_lighting_service.c
     test_lighting_output_port.c
     test_ws2812_encoder.c
     test_diagnostics.c
@@ -41,6 +42,7 @@ add_executable(unit_tests
     ../App/Src/ui/showcase_model.c
     ../App/Src/led/led_controller.c
     ../App/Src/lighting/lighting_controller.c
+    ../App/Src/lighting/lighting_service.c
     ../App/Src/platform/lighting_output_port.c
     ../App/Src/platform/ws2812_port.c
     ../App/Src/diagnostics.c

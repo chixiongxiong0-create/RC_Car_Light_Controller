@@ -116,6 +116,7 @@ target_sources(
     "Core\\Src\\iwdg.c"
     "App\\Src\\led\\led_controller.c"
     "App\\Src\\lighting\\lighting_controller.c"
+    "App\\Src\\lighting\\lighting_service.c"
     "App\\Src\\platform\\ws2812_port.c"
     "App\\Src\\platform\\lighting_output_port.c"
     "Core\\Src\\ltdc.c"
