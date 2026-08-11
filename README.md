@@ -1,5 +1,9 @@
 # Wio Lite AI RC Crawler UI
 
+## Crawler lighting hardware acceptance
+
+The MSP-controlled lighting firmware has completed software verification, but vehicle acceptance remains pending. Do not connect permanent lamps or claim physical behavior until the safe bench sequence in [the lighting checklist](docs/hardware/lighting-checklist.md) is complete. It records the AUX6-AUX9 map, external MOSFET and WS2812 wiring, power protection, required real-vehicle confirmations, and the blank-board two-image flashing requirement: `boot_stub/wio_ai_boot_stub.hex` plus `build_seed/wio_ai.hex`.
+
 Wio Lite AI（STM32H725）车壳装饰 UI 固件。它从 INAV 的独立 UART 以只读 MSP
 获取车辆状态，驱动 320×240 横屏 UI，并通过 SPI3 DMA 驱动 10～30 颗 WS2812。
 
@@ -19,7 +23,7 @@ Wio Lite AI（STM32H725）车壳装饰 UI 固件。它从 INAV 的独立 UART �
 
 - `APP_BATTERY_CELL_COUNT` 默认为 `0`（未知），此时低电量表达和告警被禁用。
   实车必须设置为实际的 `2..6` S。
-- `APP_LED_PIXEL_COUNT` 设置实际灯珠数，范围为 `10..30`。
+- `APP_LED_PIXEL_COUNT` 设置实际灯珠总数，范围为 `4..30`；前四颗为后部灯组。
 
 ## 构建
 
