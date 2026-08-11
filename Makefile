@@ -112,7 +112,8 @@ App/Src/diagnostics.c \
 App/Src/platform/touch_probe.c \
 Core/Src/iwdg.c \
 App/Src/led/led_controller.c \
-App/Src/platform/ws2812_port.c
+App/Src/platform/ws2812_port.c \
+App/Src/platform/lighting_output_port.c
 
 C_SOURCES_SEEDSTUDIO_SCREEN = \
 Drivers/BSP/Components/LCD/BSP_LCD.c \

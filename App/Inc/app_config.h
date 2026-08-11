@@ -1,5 +1,7 @@
 #pragma once
 
+#include "led/led_controller.h"
+
 /* Set to the vehicle battery's series cell count (2..6) before flashing.
  * Zero means unknown: low-battery expressions are deliberately disabled. */
 #ifndef APP_BATTERY_CELL_COUNT
@@ -10,8 +12,12 @@
 #define APP_LED_PIXEL_COUNT 30
 #endif
 
-#if APP_LED_PIXEL_COUNT < 10 || APP_LED_PIXEL_COUNT > 30
-#error "APP_LED_PIXEL_COUNT must be 10..30"
+#ifndef APP_REAR_PIXEL_COUNT
+#define APP_REAR_PIXEL_COUNT 4
+#endif
+
+#if APP_LED_PIXEL_COUNT < APP_REAR_PIXEL_COUNT || APP_LED_PIXEL_COUNT > LED_MAX_PIXELS
+#error "APP_LED_PIXEL_COUNT must be APP_REAR_PIXEL_COUNT..LED_MAX_PIXELS"
 #endif
 
 #if APP_BATTERY_CELL_COUNT != 0 && \
