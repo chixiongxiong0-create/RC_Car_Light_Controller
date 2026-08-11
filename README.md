@@ -23,7 +23,7 @@ Wio Lite AI（STM32H725）车壳装饰 UI 固件。它从 INAV 的独立 UART �
 
 - `APP_BATTERY_CELL_COUNT` 默认为 `0`（未知），此时低电量表达和告警被禁用。
   实车必须设置为实际的 `2..6` S。
-- `APP_LED_PIXEL_COUNT` 设置实际灯珠总数，范围为 `4..30`；前四颗为后部灯组。
+- `APP_LED_PIXEL_COUNT` 设置实际灯珠总数，范围为 `4..30`；前四颗为固定后部灯组，`APP_REAR_PIXEL_COUNT` 必须保持为 `4`。
 
 ## 构建
 

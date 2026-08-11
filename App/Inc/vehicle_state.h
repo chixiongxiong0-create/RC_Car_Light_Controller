@@ -29,9 +29,11 @@ typedef struct {
     uint8_t gps_sats;
     bool battery_valid;
     bool armed;
+    bool lighting_rc_valid;
     LinkState link;
     uint32_t last_msp_ms;
     uint32_t last_rc_ms;
+    uint32_t last_lighting_rc_ms;
     uint32_t last_attitude_ms;
 } VehicleState;
 

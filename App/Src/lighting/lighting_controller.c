@@ -266,6 +266,15 @@ static bool render_warning(uint32_t now_ms,
     return true;
 }
 
+static void render_lighting_loss(uint32_t now_ms, LightingFrame *frame)
+{
+    const LedRgb color = pulse_on(now_ms % 2000u, 100u, 200u, 2u)
+        ? (LedRgb){32u, 8u, 0u} : (LedRgb){0u, 0u, 0u};
+    for (size_t i = 0u; i < 4u; ++i) {
+        frame->pixels[i] = color;
+    }
+}
+
 void lighting_controller_init(LightingController *controller)
 {
     if (controller == NULL) {
@@ -289,13 +298,24 @@ void lighting_controller_render(LightingController *controller,
 
     memset(frame, 0, sizeof *frame);
     frame->roof_mode = ROOF_LIGHT_OFF;
-    if (controller == NULL || state == NULL || state->link != LINK_OK ||
-        pixel_count < 4u) {
+    if (controller == NULL || state == NULL || pixel_count < 4u) {
         return;
     }
     if (pixel_count > LED_MAX_PIXELS) {
         pixel_count = LED_MAX_PIXELS;
     }
+
+    if (state->link != LINK_OK || !state->lighting_rc_valid) {
+        if (controller->has_seen_valid_lighting_rc) {
+            render_lighting_loss(now_ms, frame);
+            led_limit_current(frame->pixels, pixel_count,
+                              LED_CURRENT_BUDGET_MA);
+            frame->estimated_ma = led_estimated_ma(frame->pixels,
+                                                   pixel_count);
+        }
+        return;
+    }
+    controller->has_seen_valid_lighting_rc = true;
 
     frame->front_duty = normalized_to_duty(state->aux6);
     frame->roof_spot_duty = normalized_to_duty(state->aux7);

@@ -46,6 +46,7 @@ static VehicleState valid_real_state(void)
         .aux9 = 1.0f,
         .battery_v = 8.0f,
         .battery_valid = true,
+        .lighting_rc_valid = true,
         .link = LINK_OK,
     };
 }
@@ -88,7 +89,7 @@ static void test_service_delivers_one_combined_post_limit_frame(void)
     assert(estimated_ma == service.frame.estimated_ma);
 }
 
-static void test_service_actively_applies_off_for_every_invalid_tick(void)
+static void test_service_turns_high_power_off_and_submits_loss_warning(void)
 {
     LightingService service;
     LightingCapture capture = {0};
@@ -107,7 +108,7 @@ static void test_service_actively_applies_off_for_every_invalid_tick(void)
         assert(lighting_service_tick(&service, (uint32_t)i, &state,
                                      false, false, 6u,
                                      capture_apply, capture_submit,
-                                     &capture) == 0u);
+                                     &capture) == 12u);
     }
 
     assert(capture.front_duties[0] == 1000u);
@@ -118,7 +119,11 @@ static void test_service_actively_applies_off_for_every_invalid_tick(void)
         assert(capture.front_duties[call] == 0u);
         assert(capture.roof_duties[call] == 0u);
         assert(capture.submitted_counts[call] == 6u);
-        for (size_t pixel = 0u; pixel < 6u; ++pixel) {
+        for (size_t pixel = 0u; pixel < 4u; ++pixel) {
+            assert_rgb(capture.submitted_pixels[call][pixel],
+                       (LedRgb){32u, 8u, 0u});
+        }
+        for (size_t pixel = 4u; pixel < 6u; ++pixel) {
             assert_rgb(capture.submitted_pixels[call][pixel],
                        (LedRgb){0u, 0u, 0u});
         }
@@ -128,5 +133,5 @@ static void test_service_actively_applies_off_for_every_invalid_tick(void)
 void test_lighting_service(void)
 {
     test_service_delivers_one_combined_post_limit_frame();
-    test_service_actively_applies_off_for_every_invalid_tick();
+    test_service_turns_high_power_off_and_submits_loss_warning();
 }

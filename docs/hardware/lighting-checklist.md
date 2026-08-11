@@ -34,7 +34,7 @@ There is one continuous pixel chain:
 
 `PB5 / SPI3 -> 5 V 74AHCT125 or 74AHCT1G125 -> 220-470 ohm series resistor -> rear left outer -> rear left inner -> rear right inner -> rear right outer -> roof strip`
 
-Power the pixels from a separate fused 5 V BEC and share its ground with Wio and the vehicle. The level shifter is powered from 5 V; do not connect a 5 V logic output directly to PB5. Set `APP_LED_PIXEL_COUNT` to the installed total, from 4 through 30; the first four are always the rear cluster and the rest are the roof region. Size the BEC, fuse, wiring, capacitor, and TVS for the actual strip current; the firmware limiter is not a substitute for power protection.
+Power the pixels from a separate fused 5 V BEC and share its ground with Wio and the vehicle. The level shifter is powered from 5 V; do not connect a 5 V logic output directly to PB5. Set `APP_LED_PIXEL_COUNT` to the installed total, from 4 through 30; the first four are always the rear cluster and the rest are the roof region. `APP_REAR_PIXEL_COUNT` is compile-time enforced at exactly 4 and must not be overridden. Size the BEC, fuse, wiring, capacitor, and TVS for the actual strip current; the firmware limiter is not a substitute for power protection.
 
 ## Light behavior and controls
 

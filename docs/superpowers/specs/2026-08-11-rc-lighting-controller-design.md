@@ -25,7 +25,7 @@ Both 12 V outputs are active-high 3.3 V logic signals into external low-side MOS
 
 ## Architecture
 
-`vehicle_state` validates and decodes at least 13 MSP RC channels. It retains steering and throttle and adds normalized AUX6 through AUX9 values without changing the existing UI-facing fields.
+`vehicle_state` validates and decodes at least 13 MSP RC channels. It retains steering and throttle, adds normalized AUX6 through AUX9 values, and tracks their validity and age independently from aggregate MSP telemetry without changing the existing UI-facing fields.
 
 `lighting_controller` is pure, hardware-independent policy. Given the real vehicle state and time, it produces:
 
@@ -73,7 +73,7 @@ Safety, brake, reverse, turn, low-battery, link-loss, and board-fault indication
 
 ## Data Validity and Failure Behavior
 
-An `MSP_RC` payload shorter than 26 bytes cannot provide AUX9 and is rejected for lighting control, while existing telemetry parsing remains backward-compatible. Channel values are clamped to 1000..2000 microseconds before normalization.
+An `MSP_RC` payload shorter than 26 bytes cannot provide AUX9 and is rejected for lighting control, while existing steering, throttle, and page parsing remains backward-compatible. Only a complete frame atomically updates AUX6-AUX9, marks lighting RC valid, and refreshes its independent timestamp. A short RC frame immediately clears lighting validity and AUX6-AUX9; 500 ms without another complete frame does the same even while other MSP telemetry continues. Channel values are clamped to 1000..2000 microseconds before normalization.
 
 The lighting controller requires a healthy, recent real RC frame. On startup, stale data, link loss, malformed frames, or demo-only operation:
 
@@ -106,6 +106,6 @@ Firmware verification requires a clean host CTest run, a fresh ARM build, `.isr_
 3. A high GPIO level turns each MOSFET on; external 10 kohm pulldowns keep both off during reset.
 4. INAV MSP channel order matches AETR followed by AUX1, making AUX6..AUX9 indices 9..12.
 5. Negative normalized steering means left and negative throttle means reverse.
-6. Total WS2812 count equals `APP_LED_PIXEL_COUNT`, with at least four pixels.
+6. Total WS2812 count equals `APP_LED_PIXEL_COUNT`, from 4 through 30; `APP_REAR_PIXEL_COUNT` is fixed at exactly four.
 7. The 5 V LED BEC, level shifter, fuse, capacitor, TVS, and common ground are installed.
 8. Brake inference feels natural on the real ESC; adjust deceleration threshold and 600 ms hold if required.

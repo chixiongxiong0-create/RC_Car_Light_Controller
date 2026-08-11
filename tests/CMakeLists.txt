@@ -99,6 +99,13 @@ add_test(NAME demo_safety_manifest
 add_test(NAME lighting_app_wiring
     COMMAND ${CMAKE_COMMAND} -P
             ${CMAKE_CURRENT_SOURCE_DIR}/test_lighting_app_wiring.cmake)
+add_test(NAME app_config_compile_contract
+    COMMAND ${CMAKE_COMMAND}
+            -DPROJECT_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/..
+            -DPROBE_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/app_config_probe
+            -DTEST_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/app_config_probe_builds
+            -DTEST_GENERATOR=${CMAKE_GENERATOR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/test_app_config_compile.cmake)
 add_test(NAME boot_stub_manifest
     COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File ${CMAKE_CURRENT_SOURCE_DIR}/test_boot_stub_manifest.ps1)

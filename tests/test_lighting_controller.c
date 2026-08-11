@@ -11,6 +11,7 @@ static VehicleState lighting_state(void)
     state.aux7 = -1.0f;
     state.aux8 = -1.0f;
     state.aux9 = -1.0f;
+    state.lighting_rc_valid = true;
     state.link = LINK_OK;
     return state;
 }
@@ -77,13 +78,16 @@ static void test_fail_safe_duties_and_bounds(void)
     assert(frame.front_duty == 1000u);
     assert(frame.roof_spot_duty == 0u);
 
+    LightingController startup_controller;
+    lighting_controller_init(&startup_controller);
     const LinkState invalid_links[] = {
         LINK_STARTING, LINK_STALE, LINK_LOST
     };
     for (size_t i = 0u; i < sizeof invalid_links / sizeof invalid_links[0]; ++i) {
         memset(&frame, 0xA5, sizeof frame);
         state.link = invalid_links[i];
-        lighting_controller_render(&controller, 10u, &state, false, true,
+        lighting_controller_render(&startup_controller, 10u, &state,
+                                   false, true,
                                    &frame, LED_MAX_PIXELS);
         assert_frame_off(&frame);
     }
@@ -125,6 +129,80 @@ static void test_fail_safe_duties_and_bounds(void)
         assert_rgb(guarded.frame.pixels[i], (LedRgb){0u, 0u, 0u});
     }
     assert_current_accounted(&guarded.frame, LED_MAX_PIXELS);
+}
+
+static void assert_loss_frame(const LightingFrame *frame, size_t pixel_count,
+                              LedRgb rear)
+{
+    assert(frame->front_duty == 0u);
+    assert(frame->roof_spot_duty == 0u);
+    assert(frame->roof_mode == ROOF_LIGHT_OFF);
+    for (size_t i = 0u; i < 4u; ++i) {
+        assert_rgb(frame->pixels[i], rear);
+    }
+    for (size_t i = 4u; i < pixel_count; ++i) {
+        assert_rgb(frame->pixels[i], (LedRgb){0u, 0u, 0u});
+    }
+    assert_current_accounted(frame, pixel_count);
+}
+
+static void test_startup_black_and_post_valid_lighting_loss(void)
+{
+    const LedRgb black = {0u, 0u, 0u};
+    const LedRgb loss_amber = {32u, 8u, 0u};
+    LightingController controller;
+    LightingFrame frame;
+    VehicleState state = lighting_state();
+    state.aux6 = 1.0f;
+    state.aux7 = 1.0f;
+    state.aux8 = -0.625f;
+    state.aux9 = 1.0f;
+
+    lighting_controller_init(&controller);
+    state.lighting_rc_valid = false;
+    lighting_controller_render(&controller, UINT32_MAX - 50u, &state,
+                               false, false, &frame, 8u);
+    assert_frame_off(&frame);
+
+    state.lighting_rc_valid = true;
+    lighting_controller_render(&controller, UINT32_MAX - 40u, &state,
+                               false, false, &frame, 8u);
+    assert(frame.front_duty == 1000u);
+    assert(frame.roof_spot_duty == 1000u);
+    assert_rgb(frame.pixels[4], (LedRgb){96u, 96u, 96u});
+
+    state.lighting_rc_valid = false;
+    state.throttle = -1.0f;
+    state.steering = -1.0f;
+    const struct {
+        uint32_t now_ms;
+        LedRgb rear;
+    } phases[] = {
+        {0u, loss_amber},
+        {99u, loss_amber},
+        {100u, black},
+        {199u, black},
+        {200u, loss_amber},
+        {299u, loss_amber},
+        {300u, black},
+        {1999u, black},
+        {2000u, loss_amber},
+    };
+    for (size_t i = 0u; i < sizeof phases / sizeof phases[0]; ++i) {
+        lighting_controller_render(&controller, phases[i].now_ms, &state,
+                                   true, true, &frame, 8u);
+        assert_loss_frame(&frame, 8u, phases[i].rear);
+    }
+
+    state.lighting_rc_valid = true;
+    state.link = LINK_STALE;
+    lighting_controller_render(&controller, 200u, &state, false, false,
+                               &frame, 8u);
+    assert_loss_frame(&frame, 8u, loss_amber);
+    state.link = LINK_LOST;
+    lighting_controller_render(&controller, 300u, &state, false, false,
+                               &frame, 8u);
+    assert_loss_frame(&frame, 8u, black);
 }
 
 static void assert_decorative_ceiling(const LightingFrame *frame,
@@ -452,6 +530,7 @@ static void test_warning_pulses_and_priority(void)
 void test_lighting_controller(void)
 {
     test_fail_safe_duties_and_bounds();
+    test_startup_black_and_post_valid_lighting_loss();
     test_roof_modes_hysteresis_and_animation();
     test_brake_reverse_and_rearm();
     test_turn_and_reverse_turn();

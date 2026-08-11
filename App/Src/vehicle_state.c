@@ -72,6 +72,15 @@ static float normalize_channel(uint16_t pulse)
     return value;
 }
 
+static void clear_lighting_rc(void)
+{
+    state.aux6 = -1.0f;
+    state.aux7 = -1.0f;
+    state.aux8 = -1.0f;
+    state.aux9 = -1.0f;
+    state.lighting_rc_valid = false;
+}
+
 static bool valid_length(const MspFrame *frame)
 {
     switch (frame->command) {
@@ -167,10 +176,7 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         state.last_rc_ms = now_ms;
         if (freeze_fast && state.link != LINK_OK) {
             if (!has_lighting_channels) {
-                state.aux6 = -1.0f;
-                state.aux7 = -1.0f;
-                state.aux8 = -1.0f;
-                state.aux9 = -1.0f;
+                clear_lighting_rc();
             }
             return true;
         }
@@ -189,11 +195,10 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
             state.aux7 = normalize_channel(raw_aux7);
             state.aux8 = normalize_channel(raw_aux8);
             state.aux9 = normalize_channel(raw_aux9);
+            state.lighting_rc_valid = true;
+            state.last_lighting_rc_ms = now_ms;
         } else {
-            state.aux6 = -1.0f;
-            state.aux7 = -1.0f;
-            state.aux8 = -1.0f;
-            state.aux9 = -1.0f;
+            clear_lighting_rc();
         }
         break;
     }
@@ -255,6 +260,10 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
 
 void vehicle_state_tick(uint32_t now_ms)
 {
+    if (state.lighting_rc_valid &&
+        (uint32_t)(now_ms - state.last_lighting_rc_ms) >= STALE_MS) {
+        clear_lighting_rc();
+    }
     if (!have_msp) {
         return;
     }

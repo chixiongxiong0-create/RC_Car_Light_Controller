@@ -34,6 +34,7 @@ typedef struct {
     bool has_previous_throttle;
     bool forward_armed;
     bool brake_active;
+    bool has_seen_valid_lighting_rc;
 } LightingController;
 
 void lighting_controller_init(LightingController *controller);
