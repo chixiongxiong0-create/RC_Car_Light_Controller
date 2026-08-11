@@ -60,12 +60,12 @@ static float lowpass(float previous, float input, float alpha)
 
 static float normalize_channel(uint16_t pulse)
 {
-    float value = ((float)pulse - 1500.0f) / 500.0f;
-    if (value > 1.0f) {
-        value = 1.0f;
-    } else if (value < -1.0f) {
-        value = -1.0f;
+    if (pulse > 2000u) {
+        pulse = 2000u;
+    } else if (pulse < 1000u) {
+        pulse = 1000u;
     }
+    float value = ((float)pulse - 1500.0f) / 500.0f;
     if (value > -0.03f && value < 0.03f) {
         value = 0.0f;
     }
@@ -119,6 +119,10 @@ void vehicle_state_init(void)
 {
     memset(&state, 0, sizeof state);
     state.link = LINK_STARTING;
+    state.aux6 = -1.0f;
+    state.aux7 = -1.0f;
+    state.aux8 = -1.0f;
+    state.aux9 = -1.0f;
     recovery_started_ms = 0u;
     have_msp = false;
     have_rc = false;
@@ -148,6 +152,18 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         const float steering = normalize_channel(raw_steering);
         const float throttle = normalize_channel(raw_throttle);
         const float aux_page = normalize_channel(raw_aux_page);
+        uint16_t raw_aux6;
+        uint16_t raw_aux7;
+        uint16_t raw_aux8;
+        uint16_t raw_aux9;
+        const bool has_lighting_channels = frame->length >= 26u;
+        if (has_lighting_channels &&
+            (!read_u16(frame, 18u, &raw_aux6) ||
+             !read_u16(frame, 20u, &raw_aux7) ||
+             !read_u16(frame, 22u, &raw_aux8) ||
+             !read_u16(frame, 24u, &raw_aux9))) {
+            return false;
+        }
         state.last_rc_ms = now_ms;
         if (freeze_fast && state.link != LINK_OK) {
             return true;
@@ -161,6 +177,17 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
             state.steering = lowpass(state.steering, steering, 0.35f);
             state.throttle = lowpass(state.throttle, throttle, 0.35f);
             state.aux_page = lowpass(state.aux_page, aux_page, 0.35f);
+        }
+        if (has_lighting_channels) {
+            state.aux6 = normalize_channel(raw_aux6);
+            state.aux7 = normalize_channel(raw_aux7);
+            state.aux8 = normalize_channel(raw_aux8);
+            state.aux9 = normalize_channel(raw_aux9);
+        } else {
+            state.aux6 = -1.0f;
+            state.aux7 = -1.0f;
+            state.aux8 = -1.0f;
+            state.aux9 = -1.0f;
         }
         break;
     }

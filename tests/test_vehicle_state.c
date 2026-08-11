@@ -47,6 +47,10 @@ static void test_decodes_supported_frames(void)
     near(state->steering, -1.0f);
     near(state->throttle, 1.0f);
     near(state->aux_page, 1.0f);
+    near(state->aux6, -1.0f);
+    near(state->aux7, -1.0f);
+    near(state->aux8, -1.0f);
+    near(state->aux9, -1.0f);
     assert(state->last_rc_ms == 100u && state->last_msp_ms == 100u);
     assert(state->link == LINK_OK);
     assert(!state->battery_valid);
@@ -74,6 +78,74 @@ static void test_decodes_supported_frames(void)
     assert(vehicle_state_on_msp(&input, 140u));
     assert(vehicle_state_get()->armed);
     assert(vehicle_state_get()->mode_flags == 0x00000101u);
+}
+
+static void test_decodes_lighting_aux_channels(void)
+{
+    const uint8_t rc_payload[] = {
+        0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05,
+        0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05,
+        0xdc, 0x05, 0xe8, 0x03, 0xe2, 0x04, 0xd6, 0x06,
+        0xd0, 0x07
+    };
+
+    vehicle_state_init();
+    MspFrame input = frame(MSP_RC, rc_payload, sizeof rc_payload);
+    assert(vehicle_state_on_msp(&input, 1u));
+    const VehicleState *state = vehicle_state_get();
+    near(state->aux6, -1.0f);
+    near(state->aux7, -0.5f);
+    near(state->aux8, 0.5f);
+    near(state->aux9, 1.0f);
+}
+
+static void test_clamps_lighting_aux_channels(void)
+{
+    const uint8_t rc_payload[] = {
+        0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05,
+        0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05,
+        0xdc, 0x05, 0x00, 0x00, 0x2c, 0x01, 0xb8, 0x0b,
+        0xff, 0xff
+    };
+
+    vehicle_state_init();
+    MspFrame input = frame(MSP_RC, rc_payload, sizeof rc_payload);
+    assert(vehicle_state_on_msp(&input, 1u));
+    const VehicleState *state = vehicle_state_get();
+    near(state->aux6, -1.0f);
+    near(state->aux7, -1.0f);
+    near(state->aux8, 1.0f);
+    near(state->aux9, 1.0f);
+}
+
+static void test_short_rc_frame_resets_lighting_aux_channels_to_safe_value(void)
+{
+    const uint8_t full_rc_payload[] = {
+        0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05,
+        0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05, 0xdc, 0x05,
+        0xdc, 0x05, 0xd0, 0x07, 0xd0, 0x07, 0xd0, 0x07,
+        0xd0, 0x07
+    };
+    const uint8_t short_rc_payload[] = {
+        0xe8, 0x03, 0xdc, 0x05, 0xd0, 0x07, 0xdc, 0x05,
+        0xd0, 0x07
+    };
+
+    vehicle_state_init();
+    MspFrame input = frame(MSP_RC, full_rc_payload, sizeof full_rc_payload);
+    assert(vehicle_state_on_msp(&input, 1u));
+    near(vehicle_state_get()->aux6, 1.0f);
+
+    input = frame(MSP_RC, short_rc_payload, sizeof short_rc_payload);
+    assert(vehicle_state_on_msp(&input, 2u));
+    const VehicleState *state = vehicle_state_get();
+    near(state->steering, -0.35f);
+    near(state->throttle, 0.35f);
+    near(state->aux_page, 0.35f);
+    near(state->aux6, -1.0f);
+    near(state->aux7, -1.0f);
+    near(state->aux8, -1.0f);
+    near(state->aux9, -1.0f);
 }
 
 static void test_channel_mapping_filter_and_deadband(void)
@@ -276,6 +348,9 @@ static void test_stale_loss_freeze_and_continuous_recovery(void)
 void test_vehicle_state(void)
 {
     test_decodes_supported_frames();
+    test_decodes_lighting_aux_channels();
+    test_clamps_lighting_aux_channels();
+    test_short_rc_frame_resets_lighting_aux_channels_to_safe_value();
     test_channel_mapping_filter_and_deadband();
     test_malformed_is_atomic();
     test_malformed_gps_does_not_advance_recovery();
