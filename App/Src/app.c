@@ -2,9 +2,10 @@
 
 #include "diagnostics.h"
 #include "app_config.h"
-#include "led/led_controller.h"
 #include "input_manager.h"
+#include "lighting/lighting_controller.h"
 #include "msp/msp_client.h"
+#include "platform/lighting_output_port.h"
 #include "platform/msp_uart.h"
 #include "platform/button_input.h"
 #include "platform/ws2812_port.h"
@@ -21,6 +22,8 @@
 #include "wio_lite_ai.h"
 
 static MspClient client;
+static LightingController lighting_controller;
+static LightingFrame lighting_frame;
 static LowBatteryPolicy battery_policy;
 static VehicleStateSource vehicle_source;
 #ifdef BSP_CONFIG_SEEDSTUDIO
@@ -58,21 +61,25 @@ static void set_user_button(bool pressed, uint32_t now_ms, void *ctx)
   input_manager_set_button(pressed, now_ms);
 }
 
-static void led_controller_tick(uint32_t now_ms, const VehicleState *state,
-                                bool low_battery)
+static void lighting_tick(uint32_t now_ms, const VehicleState *real_state,
+                          bool low_battery)
 {
-  LedRgb pixels[LED_MAX_PIXELS];
   const bool board_fault = diagnostics_get()->state == HEALTH_FAULT;
-  led_controller_render(now_ms, state, input_manager_page(), low_battery,
-                        board_fault, pixels, APP_LED_PIXEL_COUNT);
-  led_limit_current(pixels, APP_LED_PIXEL_COUNT, LED_CURRENT_BUDGET_MA);
-  led_current_ma = led_estimated_ma(pixels, APP_LED_PIXEL_COUNT);
-  (void)ws2812_port_submit(now_ms, pixels, APP_LED_PIXEL_COUNT);
+  lighting_controller_render(&lighting_controller, now_ms, real_state,
+                             low_battery, board_fault, &lighting_frame,
+                             APP_LED_PIXEL_COUNT);
+  lighting_output_port_apply(lighting_frame.front_duty,
+                             lighting_frame.roof_spot_duty);
+  led_current_ma = lighting_frame.estimated_ma;
+  (void)ws2812_port_submit(now_ms, lighting_frame.pixels,
+                           APP_LED_PIXEL_COUNT);
   diagnostics_watchdog_mark(DIAG_PROGRESS_LED);
 }
 
 void App_Init(void)
 {
+  lighting_output_port_init();
+  lighting_controller_init(&lighting_controller);
   MX_USART3_UART_Init();
   msp_uart_init();
   vehicle_state_init();
@@ -135,7 +142,7 @@ void App_Tick(uint32_t now_ms)
 #else
   diagnostics_watchdog_mark(DIAG_PROGRESS_UI);
 #endif
-  led_controller_tick(now_ms, presented, low_battery);
+  lighting_tick(now_ms, real_state, low_battery);
   const uint32_t cycle = DWT->CYCCNT;
   const uint32_t loop_us = (uint32_t)(((uint64_t)(cycle - last_cycle) * 1000000u) /
                                       SystemCoreClock);
