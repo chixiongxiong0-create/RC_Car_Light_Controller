@@ -22,6 +22,7 @@ add_executable(unit_tests
     test_low_battery_policy.c
     test_showcase_model.c
     test_led_controller.c
+    test_lighting_controller.c
     test_ws2812_encoder.c
     test_diagnostics.c
     ../App/Src/app_time.c
@@ -38,6 +39,7 @@ add_executable(unit_tests
     ../App/Src/ui/low_battery_policy.c
     ../App/Src/ui/showcase_model.c
     ../App/Src/led/led_controller.c
+    ../App/Src/lighting/lighting_controller.c
     ../App/Src/platform/ws2812_port.c
     ../App/Src/diagnostics.c
     ../App/Src/platform/touch_probe.c
