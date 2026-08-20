@@ -38,27 +38,28 @@ Result: exit 0; **12/12 registered tests passed (100%)**.
 
 ## Fresh ARM build and artifacts
 
-The fresh `build_ws4_final/` directory was created for the required target
-build. The initial invocation completed the full source build and generated
-the three artifacts; the follow-up invocation below exited 0 and reported
-`Nothing to be done for 'all'.`
+Freshness evidence is bound to a new, previously unused short build directory,
+`b4e7/`. A short directory name is intentional: long generated-directory names
+can make the Windows GCC link command exceed its process-launch limit. The
+wrapper captured the **first full invocation's exit status as `0`** in
+`b4e7/make.exit.txt`; it did not reuse an existing artifact directory.
 
 ```powershell
-make bsp_config_seedstudio=1 BUILD_DIR=build_ws4_final -j4
+make bsp_config_seedstudio=1 BUILD_DIR=b4e7 -j4
 ```
 
-Result: exit 0. Generated artifacts:
+Result: first full invocation exit 0. Generated artifacts:
 
-- `build_ws4_final/wio_ai.elf` — 6,972,824 bytes
-- `build_ws4_final/wio_ai.hex` — 972,302 bytes
-- `build_ws4_final/wio_ai.bin` — 345,652 bytes
+- `b4e7/wio_ai.elf` — 6,972,824 bytes
+- `b4e7/wio_ai.hex` — 972,302 bytes
+- `b4e7/wio_ai.bin` — 345,652 bytes
 
 Required artifact inspection commands:
 
 ```powershell
-arm-none-eabi-objdump -h build_ws4_final/wio_ai.elf
-arm-none-eabi-nm -u build_ws4_final/wio_ai.elf
-Get-FileHash build_ws4_final/wio_ai.elf,build_ws4_final/wio_ai.hex,build_ws4_final/wio_ai.bin -Algorithm SHA256
+arm-none-eabi-objdump -h b4e7/wio_ai.elf
+arm-none-eabi-nm -u b4e7/wio_ai.elf
+Get-FileHash b4e7/wio_ai.elf,b4e7/wio_ai.hex,b4e7/wio_ai.bin -Algorithm SHA256
 ```
 
 Results:
