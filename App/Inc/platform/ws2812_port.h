@@ -4,45 +4,43 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "led/led_controller.h"
+#include "led/ws2812_frame.h"
 
-#define WS2812_BYTES_PER_PIXEL 12u
-#define WS2812_ENCODED_BYTES (LED_MAX_PIXELS * WS2812_BYTES_PER_PIXEL)
-#define WS2812_RESET_BYTES 24u
-#define WS2812_TX_BYTES (WS2812_ENCODED_BYTES + WS2812_RESET_BYTES)
+enum {
+    WS2812_PAIR_COUNT = 2u,
+    WS2812_MIN_RESET_SLOTS = 64u,
+    WS2812_RATE_LIMIT_MS = 34u
+};
 
-size_t ws2812_encode_grb(const LedRgb *pixels, size_t count,
-                         uint8_t *out, size_t capacity);
+size_t ws2812_encode_pair(const LedRgb *first, const LedRgb *second,
+                          size_t pixel_count, uint32_t duty_0,
+                          uint32_t duty_1, size_t reset_slots,
+                          uint32_t *interleaved, size_t capacity_words);
+
 bool ws2812_can_submit(uint32_t now_ms, uint32_t last_submit_ms, bool idle);
 
-typedef bool (*Ws2812DmaStart)(const uint8_t *data, size_t length, void *ctx);
+typedef bool (*Ws2812PairStartFn)(unsigned pair, const uint32_t *words,
+                                  size_t slots, void *ctx);
+typedef void (*Ws2812PairStopFn)(unsigned pair, void *ctx);
+
 typedef struct {
-    volatile bool idle;
+    bool idle;
+    uint8_t complete_mask;
     uint32_t last_submit_ms;
     uint32_t error_count;
-    const void *expected_handle;
-    const void *expected_instance;
 } Ws2812Transport;
 
-void ws2812_transport_init(Ws2812Transport *transport,
-                            const void *expected_handle,
-                            const void *expected_instance);
+void ws2812_transport_init(Ws2812Transport *transport);
 bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
-                             const LedRgb *pixels, size_t count,
-                             uint8_t *tx, size_t capacity,
-                             Ws2812DmaStart start, void *ctx);
-void ws2812_transport_complete(Ws2812Transport *transport,
-                               const void *handle, const void *instance);
-void ws2812_transport_error(Ws2812Transport *transport,
-                            const void *handle, const void *instance);
-void ws2812_transport_abort_complete(Ws2812Transport *transport,
-                                     const void *handle, const void *instance);
+                             const Ws2812Frame *frame, uint32_t duty_0,
+                             uint32_t duty_1, size_t reset_slots,
+                             uint32_t *pair_0_words,
+                             size_t pair_0_capacity_words,
+                             uint32_t *pair_1_words,
+                             size_t pair_1_capacity_words,
+                             Ws2812PairStartFn start,
+                             Ws2812PairStopFn stop, void *ctx);
+void ws2812_transport_complete(Ws2812Transport *transport, unsigned pair);
+void ws2812_transport_error(Ws2812Transport *transport, unsigned pair,
+                            Ws2812PairStopFn stop, void *ctx);
 uint32_t ws2812_transport_errors(const Ws2812Transport *transport);
-
-#ifndef WS2812_HOST_TEST
-void ws2812_port_init(void);
-bool ws2812_port_submit(uint32_t now_ms, const LedRgb *pixels, size_t count);
-void ws2812_port_tx_complete(void *spi_handle);
-void ws2812_port_error(void *spi_handle);
-void ws2812_port_abort_complete(void *spi_handle);
-#endif

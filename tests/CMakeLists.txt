@@ -23,6 +23,7 @@ add_executable(unit_tests
     test_showcase_model.c
     test_led_controller.c
     ../App/Inc/led/ws2812_frame.h
+    ../App/Inc/platform/ws2812_port.h
     test_lighting_controller.c
     test_lighting_service.c
     test_lighting_output_port.c
