@@ -55,3 +55,10 @@ void ws2812_transport_complete(Ws2812Transport *transport, unsigned pair);
 void ws2812_transport_error(Ws2812Transport *transport, unsigned pair,
                             Ws2812PairStopFn stop, void *ctx);
 uint32_t ws2812_transport_errors(const Ws2812Transport *transport);
+
+#ifndef WS2812_HOST_TEST
+void ws2812_port_init(void);
+bool ws2812_port_submit(uint32_t now_ms, const Ws2812Frame *frame);
+void ws2812_port_pair_complete(unsigned pair);
+void ws2812_port_pair_error(unsigned pair);
+#endif

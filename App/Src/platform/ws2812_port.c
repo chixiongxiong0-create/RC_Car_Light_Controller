@@ -2,6 +2,10 @@
 
 #include <string.h>
 
+#ifndef WS2812_HOST_TEST
+#include "tim.h"
+#endif
+
 static size_t encode_component_pair(uint8_t first, uint8_t second,
                                     uint32_t duty_0, uint32_t duty_1,
                                     uint32_t *interleaved, size_t offset)
@@ -185,3 +189,224 @@ uint32_t ws2812_transport_errors(const Ws2812Transport *transport)
 {
     return transport != NULL ? transport->error_count : 0u;
 }
+
+#ifndef WS2812_HOST_TEST
+
+enum {
+    WS2812_CACHE_LINE_BYTES = 32u,
+    WS2812_DMA_MAX_WORDS = 0xffffu,
+    WS2812_PAIR_0_PIXELS = 4u,
+    WS2812_PAIR_1_PIXELS = 8u,
+    WS2812_PAIR_0_SLOTS = WS2812_PAIR_0_PIXELS * 24u + WS2812_MIN_RESET_SLOTS,
+    WS2812_PAIR_1_SLOTS = WS2812_PAIR_1_PIXELS * 24u + WS2812_MIN_RESET_SLOTS,
+    WS2812_PAIR_0_WORDS = WS2812_PAIR_0_SLOTS * 2u,
+    WS2812_PAIR_1_WORDS = WS2812_PAIR_1_SLOTS * 2u
+};
+
+static Ws2812Transport ws2812_transport;
+static bool ws2812_initialized;
+static uint32_t ws2812_duty_0;
+static uint32_t ws2812_duty_1;
+static uint32_t ws2812_pair_0_words[WS2812_PAIR_0_WORDS]
+    __attribute__((aligned(WS2812_CACHE_LINE_BYTES)));
+static uint32_t ws2812_pair_1_words[WS2812_PAIR_1_WORDS]
+    __attribute__((aligned(WS2812_CACHE_LINE_BYTES)));
+
+static TIM_HandleTypeDef *ws2812_pair_timer(unsigned pair)
+{
+    if (pair == 0u) {
+        return &htim2;
+    }
+    if (pair == 1u) {
+        return &htim3;
+    }
+    return NULL;
+}
+
+static void ws2812_pair_pins_low(unsigned pair)
+{
+    GPIO_InitTypeDef gpio = {0};
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    gpio.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio.Pull = GPIO_NOPULL;
+    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+
+    if (pair == 0u) {
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+        gpio.Pin = GPIO_PIN_0;
+        HAL_GPIO_Init(GPIOA, &gpio);
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+        gpio.Pin = GPIO_PIN_3;
+        HAL_GPIO_Init(GPIOB, &gpio);
+    } else if (pair == 1u) {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_RESET);
+        gpio.Pin = GPIO_PIN_4 | GPIO_PIN_5;
+        HAL_GPIO_Init(GPIOB, &gpio);
+    }
+}
+
+static void ws2812_all_pins_low(void)
+{
+    ws2812_pair_pins_low(0u);
+    ws2812_pair_pins_low(1u);
+}
+
+static void ws2812_pair_stop(unsigned pair, void *ctx)
+{
+    (void)ctx;
+    TIM_HandleTypeDef *timer = ws2812_pair_timer(pair);
+    if (timer == NULL) {
+        return;
+    }
+
+    (void)HAL_TIM_PWM_Stop(timer, TIM_CHANNEL_1);
+    (void)HAL_TIM_PWM_Stop(timer, TIM_CHANNEL_2);
+    (void)HAL_TIM_DMABurst_WriteStop(timer, TIM_DMA_UPDATE);
+    __HAL_TIM_SET_COMPARE(timer, TIM_CHANNEL_1, 0u);
+    __HAL_TIM_SET_COMPARE(timer, TIM_CHANNEL_2, 0u);
+    ws2812_pair_pins_low(pair);
+}
+
+static void ws2812_restore_pair_alternate_function(unsigned pair)
+{
+    TIM_HandleTypeDef *timer = ws2812_pair_timer(pair);
+    if (timer != NULL) {
+        HAL_TIM_MspPostInit(timer);
+    }
+}
+
+static bool ws2812_pair_start(unsigned pair, const uint32_t *words,
+                              size_t slots, void *ctx)
+{
+    (void)ctx;
+    TIM_HandleTypeDef *timer = ws2812_pair_timer(pair);
+    if (timer == NULL || words == NULL || slots == 0u ||
+        slots > WS2812_DMA_MAX_WORDS / 2u) {
+        return false;
+    }
+
+    const uint32_t data_length = (uint32_t)(slots * 2u);
+    const size_t encoded_bytes = (size_t)data_length * sizeof *words;
+    const size_t clean_bytes =
+        (encoded_bytes + WS2812_CACHE_LINE_BYTES - 1u) &
+        ~(size_t)(WS2812_CACHE_LINE_BYTES - 1u);
+
+    ws2812_restore_pair_alternate_function(pair);
+    SCB_CleanDCache_by_Addr((uint32_t *)words, (int32_t)clean_bytes);
+    __HAL_TIM_SET_COUNTER(timer, 0u);
+    __HAL_TIM_SET_COMPARE(timer, TIM_CHANNEL_1, 0u);
+    __HAL_TIM_SET_COMPARE(timer, TIM_CHANNEL_2, 0u);
+
+    if (HAL_TIM_DMABurst_MultiWriteStart(
+            timer, TIM_DMABASE_CCR1, TIM_DMA_UPDATE, words,
+            TIM_DMABURSTLENGTH_2TRANSFERS,
+            (uint32_t)(slots * 2u)) != HAL_OK) {
+        ws2812_pair_stop(pair, NULL);
+        ws2812_all_pins_low();
+        return false;
+    }
+    if (HAL_TIM_PWM_Start(timer, TIM_CHANNEL_1) != HAL_OK ||
+        HAL_TIM_PWM_Start(timer, TIM_CHANNEL_2) != HAL_OK) {
+        ws2812_pair_stop(pair, NULL);
+        ws2812_all_pins_low();
+        return false;
+    }
+    return true;
+}
+
+static uintptr_t ws2812_critical_enter(void *ctx)
+{
+    (void)ctx;
+    const uint32_t saved_primask = __get_PRIMASK();
+    __disable_irq();
+    return (uintptr_t)saved_primask;
+}
+
+static void ws2812_critical_exit(uintptr_t saved_state, void *ctx)
+{
+    (void)ctx;
+    __set_PRIMASK((uint32_t)saved_state);
+}
+
+static void ws2812_noop_stop(unsigned pair, void *ctx)
+{
+    (void)pair;
+    (void)ctx;
+}
+
+void ws2812_port_init(void)
+{
+    ws2812_initialized = false;
+    ws2812_transport_init(&ws2812_transport);
+    ws2812_all_pins_low();
+    MX_TIM2_Init();
+    MX_TIM3_Init();
+
+    const uint32_t period_ticks = htim2.Init.Period + 1u;
+    ws2812_duty_0 = period_ticks / 3u;
+    ws2812_duty_1 = (period_ticks * 2u) / 3u;
+    if (period_ticks == 0u || ws2812_duty_0 == 0u ||
+        ws2812_duty_0 >= ws2812_duty_1 ||
+        ws2812_duty_1 >= period_ticks || htim3.Init.Period != htim2.Init.Period) {
+        ws2812_all_pins_low();
+        return;
+    }
+    ws2812_initialized = true;
+}
+
+bool ws2812_port_submit(uint32_t now_ms, const Ws2812Frame *frame)
+{
+    if (!ws2812_initialized) {
+        return false;
+    }
+
+    return ws2812_transport_submit(
+        &ws2812_transport, now_ms, frame, ws2812_duty_0, ws2812_duty_1,
+        WS2812_MIN_RESET_SLOTS, ws2812_pair_0_words,
+        WS2812_PAIR_0_WORDS, ws2812_pair_1_words, WS2812_PAIR_1_WORDS,
+        ws2812_pair_start, ws2812_pair_stop, ws2812_critical_enter,
+        ws2812_critical_exit, NULL);
+}
+
+void ws2812_port_pair_complete(unsigned pair)
+{
+    if (pair >= WS2812_PAIR_COUNT) {
+        return;
+    }
+    ws2812_pair_stop(pair, NULL);
+    ws2812_transport_complete(&ws2812_transport, pair);
+}
+
+void ws2812_port_pair_error(unsigned pair)
+{
+    if (pair >= WS2812_PAIR_COUNT ||
+        ws2812_transport.state == WS2812_TRANSPORT_IDLE) {
+        return;
+    }
+
+    ws2812_pair_stop(0u, NULL);
+    ws2812_pair_stop(1u, NULL);
+    ws2812_transport_error(&ws2812_transport, pair, ws2812_noop_stop, NULL);
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim == &htim2) {
+        ws2812_port_pair_complete(0u);
+    } else if (htim == &htim3) {
+        ws2812_port_pair_complete(1u);
+    }
+}
+
+void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim == &htim2) {
+        ws2812_port_pair_error(0u);
+    } else if (htim == &htim3) {
+        ws2812_port_pair_error(1u);
+    }
+}
+
+#endif

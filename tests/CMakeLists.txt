@@ -101,6 +101,9 @@ add_test(NAME demo_safety_manifest
 add_test(NAME lighting_app_wiring
     COMMAND ${CMAKE_COMMAND} -P
             ${CMAKE_CURRENT_SOURCE_DIR}/test_lighting_app_wiring.cmake)
+add_test(NAME ws2812_timer_manifest
+    COMMAND ${CMAKE_COMMAND} -P
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_ws2812_timer_manifest.cmake)
 add_test(NAME app_config_compile_contract
     COMMAND ${CMAKE_COMMAND}
             -DPROJECT_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/..
