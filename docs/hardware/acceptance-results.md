@@ -13,13 +13,13 @@ WS2812、供电、波形、顺序、复位、链路丢失或热/电流验收证�
 
 | ID | 项目 | 期望/测点 | 状态 | 证据 |
 |---|---|---|---|---|
-| 4WS-01 | WS1 身份与 DIN 顺序 | PA0/D9 -> 100R -> AHCT 1A/1Y -> 330R -> WS1 DIN，4 像素；记录左/右身份 | PENDING | — |
-| 4WS-02 | WS2 身份与 DIN 顺序 | PB3/D12 -> 100R -> AHCT 2A/2Y -> 330R -> WS2 DIN，4 像素；记录左/右身份 | PENDING | — |
-| 4WS-03 | WS3 身份与 DIN 顺序 | PB4/MISO -> 100R -> AHCT 3A/3Y -> 330R -> WS3 DIN，8 像素 | PENDING | — |
-| 4WS-04 | WS4 身份与 DIN 顺序 | PB5/MOSI -> 100R -> AHCT 4A/4Y -> 330R -> WS4 DIN，8 像素 | PENDING | — |
+| 4WS-01 | WS1 身份与 DIN 顺序 | PA0/D9 -> 100R -> 74AHCT125 1A/1Y -> 330R -> WS1 DIN，4 像素；记录左/右身份 | PENDING | — |
+| 4WS-02 | WS2 身份与 DIN 顺序 | PB3/D12 -> 100R -> 74AHCT125 2A/2Y -> 330R -> WS2 DIN，4 像素；记录左/右身份 | PENDING | — |
+| 4WS-03 | WS3 身份与 DIN 顺序 | PB4/MISO -> 100R -> 74AHCT125 3A/3Y -> 330R -> WS3 DIN，8 像素 | PENDING | — |
+| 4WS-04 | WS4 身份与 DIN 顺序 | PB5/MOSI -> 100R -> 74AHCT125 4A/4Y -> 330R -> WS4 DIN，8 像素 | PENDING | — |
 | 4WS-05 | 74AHCT125 与保护 | protected 5 V、全部 OE 低、100 nF 本地去耦、无 5 V 回灌 MCU | PENDING | — |
 | 4WS-06 | 电源与电流 | fused 5 V/3 A BEC、受保护输入 bulk、可选每远端组 100 uF、1 A 软件预算 | PENDING | — |
-| 4WS-07 | 波形与复位 | 在每组 AHCT 输出、330R 后的 DIN 测点测量数据高/低、周期和 reset low | PENDING | — |
+| 4WS-07 | 波形与复位 | 在每组 74AHCT125 输出、330R 后的 DIN 测点测量数据高/低、周期和 reset low | PENDING | — |
 | 4WS-08 | 温升 | BEC、74AHCT125、四组 LED 和线束在最大策略亮度下的温度 | PENDING | — |
 | 4WS-09 | 链路丢失 | 有过真实链路后，MSP stale/lost 时所有实体灯具的安全行为 | PENDING | — |
 
@@ -32,7 +32,7 @@ WS2812、供电、波形、顺序、复位、链路丢失或热/电流验收证�
 | 稳定启动桩烧录、复位、短时运行 | PASS（2026-08-04） | 仅覆盖启动交接、短时 CPU 运行和 PF5；不代表连续运行或视觉验收 |
 | 功能与故障注入 | PENDING | 真实飞控、接收机、UI板和供电就绪后执行 |
 | 屏幕阻断验收 | PENDING | 实测横屏/RGB、动态撕裂及连续60 s FPS |
-| WS2812波形与电流 | PENDING | 逻辑分析仪、限流电源、10颗和30颗灯带就绪后执行 |
+| WS2812波形与电流 | PENDING | 逻辑分析仪、限流电源和当前 4/4/8/8 四组（24 像素）就绪后执行 |
 | 看门狗/触摸 | PENDING | 分别使用DEBUG/生产固件和实际I2C4硬件执行 |
 | 四小时浸泡 | PENDING | 其余阻断项通过后执行并保存原始日志 |
 
@@ -131,8 +131,8 @@ git diff --check
 | HW-04 | 可注入串口噪声/坏校验帧 | 插入坏 checksum、截断帧和随机字节 | 无效帧被忽略，无错误状态更新、死机或阻塞 | PENDING | — | — | — |
 | HW-05 | AUX 已映射、板载按键可用 | AUX依次低/中/高，再断开AUX使用按键 | 三页正确切换；按键回退可用且无抖动乱跳 | PENDING | — | — | — |
 | HW-06 | I2C4可接入/断开触摸 | 分别测试无控制器、未知地址/ID、已知FT/GT | 无/未知设备不阻塞启动；FT/GT正确识别；探测总耗时 ≤15 ms | PENDING | — | — | 0x38 FT，0x5D/0x14 GT；单次5 ms |
-| HW-07 | 5 V限流、10颗灯、逻辑分析仪 | 运行动画及最大允许亮度 | 颜色/顺序正确，估算和实测符合1 A预算，无UI明显掉帧/复位 | PENDING | — | — | — |
-| HW-08 | 5 V/3 A、30颗灯、逻辑分析仪 | 运行动画及最大允许亮度 | 颜色/顺序正确，1 A预算生效，无过热、UI明显掉帧/复位 | PENDING | — | — | — |
+| HW-07 | 5 V限流、WS1/WS2 各4颗、逻辑分析仪 | 运行两组独立图案及最大允许亮度 | 两组颜色/顺序/左右身份正确，估算和实测符合1 A总预算，无UI明显掉帧/复位 | PENDING | — | — | — |
+| HW-08 | 5 V/3 A、WS1--WS4 共24颗、逻辑分析仪 | 运行四组独立图案及最大允许亮度 | 四组颜色/顺序/身份正确，1 A总预算生效，无过热、UI明显掉帧/复位 | PENDING | — | — | — |
 | HW-09 | INAV+ELRS已可正常控车 | INAV继续运行时复位/断电Wio | 车辆控制链路不中断，飞控不重启 | PENDING | — | — | — |
 | HW-10 | 记录静态供电基线 | 循环通断buck输入并施加电机/舵机负载 | Wio可恢复；INAV控制不中断；无棕断、花屏或串口锁死 | PENDING | — | — | — |
 | HW-11 | 实际2..6 S已编译配置 | 模拟正常、低电阈值及恢复 | 电压显示正确，低电表达/灯效按策略触发和恢复 | PENDING | — | — | 默认0时禁止执行/签署 |
@@ -166,15 +166,20 @@ PWM DMA-burst 的四路独立输出；不得引用旧的 SPI3 单链 2.4 MHz/3-b
 | 4WS-WF-04 | WS4 / 8 | PENDING | PENDING | PENDING | PENDING | — |
 | 4WS-WF-05 | 4 groups / 24 | PENDING — concurrent transfer and all reset lows | PENDING | PENDING | PENDING | — |
 
+### 已弃用的旧单链模板（不得执行或签署）
+
+下列 10/30 颗记录仅保留用于解释早期 SPI3 单链验收历史；它们不属于当前四路实现，
+不得填写为当前结果，也不得替代上方 `4WS-WF-*` 行。状态固定为 `DEPRECATED`。
+
 | ID | 条件 | T0H实测 | T1H实测 | 单元周期实测 | reset low实测 | 状态 | 时间戳/证据 | 备注 |
 |---|---|---:|---:|---:|---:|---|---|---|
-| WS-01 | 10颗、典型数据 | PENDING | PENDING | PENDING | PENDING | PENDING | — | 理论约0.291/0.873/1.164/55.9 µs |
-| WS-02 | 30颗、典型数据 | PENDING | PENDING | PENDING | PENDING | PENDING | — | 检查最远端数据完整性 |
+| WS-01 | 旧单链10颗、典型数据 | — | — | — | — | DEPRECATED | — | 旧 SPI3 模板；不得作为四路证据 |
+| WS-02 | 旧单链30颗、典型数据 | — | — | — | — | DEPRECATED | — | 旧 SPI3 模板；不得作为四路证据 |
 
 | ID | 条件 | 5 V静态 | 峰值电流 | 平均电流 | Wio复位 | FPS影响 | 状态 | 时间戳/证据 |
 |---|---|---:|---:|---:|---|---|---|---|
-| WS-03 | 10颗最大策略亮度 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | — |
-| WS-04 | 30颗最大策略亮度 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | — |
+| WS-03 | 旧单链10颗最大策略亮度 | — | — | — | — | — | DEPRECATED | — |
+| WS-04 | 旧单链30颗最大策略亮度 | — | — | — | — | — | DEPRECATED | — |
 
 ## 看门狗
 
@@ -203,9 +208,12 @@ CubeMX 的 IWDG virtual pin Minor warning 是已知提示。不要为消除提�
   采样的可见值记录，并签署“最大观察到的连续 frame_misses”，不声称它是累计 delta。
 - FPS 以定时采样值签署“最低采样 FPS”；画面连续性和复位由覆盖整个测试的连续视频
   佐证，不能由单张结束照片推断。
-- 当前诊断 overlay 没有持久的 WS2812/DMA error 计数。改为从连续视频和人工事件日志
-  记录“可见灯效停更/恢复事件数”；事件发生时再保存逻辑分析仪触发记录。若必须获得
-  内部 WS 错误精确值，填写 `N/A—需另加 instrumented build`，它不是当前固件的签署字段。
+- `DiagnosticsSnapshot.ws2812_busy_drops` 通过 `diagnostics_get()` 可读取，并由独立的
+  `ws2812_port_busy_drops()` 传输访问器更新；它只统计因传输非 IDLE 而丢弃的候选帧，
+  不统计 34 ms 正常限速、编码无效或 DMA/定时器启动错误。当前 overlay 尚未渲染该字段，
+  因此现场签署仍从连续视频和人工事件日志记录“可见灯效停更/恢复事件数”。
+- 当前诊断路径没有持久的 WS2812 DMA/定时器 error 计数；该错误计数与 busy-drop 计数
+  明确分离。若必须获得内部 error 精确值，填写 `N/A—需另加 instrumented build`。
 - 当前固件也没有持久 reset count。复位次数根据连续视频中的 boot sequence 和电源电流
   重启特征人工计数；事件后立即拍摄 `reset_flags`。该值不是内部持久计数器。
 - 5 V/电池电压由带日志的万用表或示波器采集；温度由热电偶或红外测温仪采集，并保存
