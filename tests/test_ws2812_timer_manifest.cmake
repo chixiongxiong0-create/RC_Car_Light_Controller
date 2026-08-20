@@ -12,6 +12,10 @@ foreach(target_file IN LISTS TARGET_FILES)
     string(APPEND TARGET_TEXT "\n${file_text}")
 endforeach()
 file(READ "${PROJECT_ROOT}/Core/Src/tim.c" TIM_TEXT)
+file(READ "${PROJECT_ROOT}/Makefile" MAKE_TEXT)
+file(READ "${PROJECT_ROOT}/cmake/st-project.cmake" CMAKE_TEXT)
+string(REPLACE "\\" "/" CMAKE_TEXT "${CMAKE_TEXT}")
+string(REPLACE "//" "/" CMAKE_TEXT "${CMAKE_TEXT}")
 
 function(require_text literal)
     string(FIND "${TARGET_TEXT}" "${literal}" found_at)
@@ -56,6 +60,20 @@ require_text("ws2812_timer_fail_safe")
 require_text("ws2812_dma_fail_safe")
 require_text("TIM_DMABURSTLENGTH_2TRANSFERS,\n            (uint32_t)(slots * 2u)) != HAL_OK) {\n        ws2812_pair_stop(pair, NULL)")
 reject_text("HAL_SPI_Transmit_DMA")
+
+function(require_exactly_once source_text literal manifest_name)
+    string(REGEX MATCHALL "${literal}" matches "${source_text}")
+    list(LENGTH matches match_count)
+    if(NOT match_count EQUAL 1)
+        message(FATAL_ERROR
+            "${manifest_name} must list App/Src/platform/ws2812_port.c exactly once; found ${match_count}")
+    endif()
+endfunction()
+
+require_exactly_once("${MAKE_TEXT}"
+    "App/Src/platform/ws2812_port\\.c" "Makefile")
+require_exactly_once("${CMAKE_TEXT}"
+    "App/Src/platform/ws2812_port\\.c" "cmake/st-project.cmake")
 
 require_safe_low_before_init("GPIOA" "GPIO_PIN_0")
 require_safe_low_before_init("GPIOB" "GPIO_PIN_3")

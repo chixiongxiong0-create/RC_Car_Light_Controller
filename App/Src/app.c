@@ -16,7 +16,6 @@
 #include "ui/ui_app.h"
 #endif
 #include "usart.h"
-#include "spi.h"
 #include "vehicle_state.h"
 #include "vehicle_state_source.h"
 #include "wio_lite_ai.h"
@@ -67,11 +66,11 @@ static void apply_lighting(uint16_t front_duty, uint16_t roof_spot_duty,
   lighting_output_port_apply(front_duty, roof_spot_duty);
 }
 
-static bool submit_lighting(uint32_t now_ms, const LedRgb *pixels,
-                            size_t count, void *ctx)
+static bool submit_lighting(uint32_t now_ms, const Ws2812Frame *frame,
+                            void *ctx)
 {
   (void)ctx;
-  return ws2812_port_submit(now_ms, pixels, count);
+  return ws2812_port_submit(now_ms, frame);
 }
 
 static void lighting_tick(uint32_t now_ms, const VehicleState *real_state,
@@ -80,7 +79,7 @@ static void lighting_tick(uint32_t now_ms, const VehicleState *real_state,
   const bool board_fault = diagnostics_get()->state == HEALTH_FAULT;
   led_current_ma = lighting_service_tick(
       &lighting_service, now_ms, real_state, low_battery, board_fault,
-      APP_LED_PIXEL_COUNT, apply_lighting, submit_lighting, NULL);
+      apply_lighting, submit_lighting, NULL);
   diagnostics_watchdog_mark(DIAG_PROGRESS_LED);
 }
 
@@ -176,21 +175,4 @@ void App_Tick(uint32_t now_ms)
     last_diag_ms = now_ms;
   }
   diagnostics_tick(now_ms);
-}
-
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-  if (hspi == &hspi3) {
-    ws2812_port_tx_complete(hspi);
-  }
-}
-
-void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
-{
-  ws2812_port_error(hspi);
-}
-
-void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi)
-{
-  ws2812_port_abort_complete(hspi);
 }
