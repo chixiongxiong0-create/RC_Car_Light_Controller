@@ -17,6 +17,9 @@ size_t ws2812_encode_pair(const LedRgb *first, const LedRgb *second,
                           uint32_t duty_1, size_t reset_slots,
                           uint32_t *interleaved, size_t capacity_words);
 
+bool ws2812_compare_ticks(uint32_t timer_clock_hz, uint32_t period_ticks,
+                          uint32_t *duty_0, uint32_t *duty_1);
+
 bool ws2812_can_submit(uint32_t now_ms, uint32_t last_submit_ms, bool idle);
 
 typedef bool (*Ws2812PairStartFn)(unsigned pair, const uint32_t *words,
@@ -37,6 +40,7 @@ typedef struct {
     volatile bool pair_complete[WS2812_PAIR_COUNT];
     uint32_t last_submit_ms;
     volatile uint32_t error_count;
+    volatile uint32_t busy_drop_count;
 } Ws2812Transport;
 
 void ws2812_transport_init(Ws2812Transport *transport);
@@ -55,10 +59,12 @@ void ws2812_transport_complete(Ws2812Transport *transport, unsigned pair);
 void ws2812_transport_error(Ws2812Transport *transport, unsigned pair,
                             Ws2812PairStopFn stop, void *ctx);
 uint32_t ws2812_transport_errors(const Ws2812Transport *transport);
+uint32_t ws2812_transport_busy_drops(const Ws2812Transport *transport);
 
 #ifndef WS2812_HOST_TEST
 void ws2812_port_init(void);
 bool ws2812_port_submit(uint32_t now_ms, const Ws2812Frame *frame);
+uint32_t ws2812_port_busy_drops(void);
 void ws2812_port_pair_complete(unsigned pair);
 void ws2812_port_pair_error(unsigned pair);
 #endif

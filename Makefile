@@ -44,7 +44,6 @@ Core/Src/gpio.c \
 Core/Src/crc.c \
 Core/Src/dma.c \
 Core/Src/octospi.c \
-Core/Src/spi.c \
 Core/Src/tim.c \
 Core/Src/usart.c \
 Core/Src/sysmem.c \

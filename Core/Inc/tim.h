@@ -41,6 +41,7 @@ extern DMA_HandleTypeDef hdma_tim3_up;
 
 /* USER CODE END Private defines */
 
+uint32_t ws2812_timer_clock_hz(void);
 void MX_TIM2_Init(void);
 void MX_TIM3_Init(void);
 

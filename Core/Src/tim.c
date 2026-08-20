@@ -27,7 +27,7 @@ static void ws2812_timer_fail_safe(void)
   for (;;) {}
 }
 
-static uint32_t ws2812_timer_period(void)
+uint32_t ws2812_timer_clock_hz(void)
 {
   uint32_t timer_clock = HAL_RCC_GetPCLK1Freq();
   if ((RCC->D2CFGR & RCC_D2CFGR_D2PPRE1) != RCC_APB1_DIV1)
@@ -38,6 +38,13 @@ static uint32_t ws2812_timer_period(void)
     }
     timer_clock *= 2u;
   }
+
+  return timer_clock;
+}
+
+static uint32_t ws2812_timer_period(void)
+{
+  const uint32_t timer_clock = ws2812_timer_clock_hz();
 
   const uint32_t period_ticks = (timer_clock + 400000u) / 800000u;
   if (period_ticks == 0u || period_ticks > 0x10000u)

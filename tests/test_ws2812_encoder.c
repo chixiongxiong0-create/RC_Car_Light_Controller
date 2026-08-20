@@ -18,6 +18,7 @@ typedef struct {
     unsigned stop_calls[2];
     bool start_succeeds[2];
     bool error_during_pair_0_start;
+    bool become_busy_on_critical_enter;
     const uint32_t *started_words[2];
     size_t started_slots[2];
     Ws2812Transport *transport;
@@ -36,6 +37,9 @@ static uintptr_t fake_critical_enter(void *ctx)
 {
     FakePairs *fake = ctx;
     fake->critical_enter_calls++;
+    if (fake->become_busy_on_critical_enter) {
+        fake->transport->state = WS2812_TRANSPORT_ACTIVE;
+    }
     return 0xA55Au;
 }
 
@@ -64,6 +68,19 @@ static bool fake_start(unsigned pair, const uint32_t *words, size_t slots,
 
 void test_ws2812_encoder(void)
 {
+    uint32_t calculated_duty_0 = 0u;
+    uint32_t calculated_duty_1 = 0u;
+    assert(ws2812_compare_ticks(275000000u, 344u, &calculated_duty_0,
+                                &calculated_duty_1));
+    assert(calculated_duty_0 == 96u);
+    assert(calculated_duty_1 == 193u);
+    assert(!ws2812_compare_ticks(0u, 344u, &calculated_duty_0,
+                                 &calculated_duty_1));
+    assert(!ws2812_compare_ticks(275000000u, 193u, &calculated_duty_0,
+                                 &calculated_duty_1));
+    assert(!ws2812_compare_ticks(275000000u, 344u, NULL,
+                                 &calculated_duty_1));
+
     uint32_t out[2u * (PAIR_1_PIXELS * 24u + RESET_SLOTS) + 2u];
     for (size_t i = 0u; i < sizeof out / sizeof out[0]; ++i) {
         out[i] = 0xA55Au;
@@ -119,6 +136,7 @@ void test_ws2812_encoder(void)
     Ws2812Transport transport;
     FakePairs fake = {.start_succeeds = {true, true}};
     ws2812_transport_init(&transport);
+    assert(ws2812_transport_busy_drops(&transport) == 0u);
 
     assert(!ws2812_transport_submit(&transport, 0u, &frame, DUTY_0, DUTY_1,
                                     RESET_SLOTS, pair_0_words,
@@ -131,6 +149,8 @@ void test_ws2812_encoder(void)
     assert(fake.start_calls[1] == 0u);
     assert(fake.critical_enter_calls == 0u);
     assert(fake.critical_exit_calls == 0u);
+    assert(ws2812_transport_busy_drops(&transport) == 0u);
+    assert(ws2812_transport_errors(&transport) == 0u);
 
     assert(ws2812_transport_submit(&transport, 0u, &frame, DUTY_0, DUTY_1,
                                    RESET_SLOTS, pair_0_words, PAIR_0_WORDS,
@@ -159,10 +179,19 @@ void test_ws2812_encoder(void)
     assert(fake.critical_enter_calls == 1u);
     assert(fake.critical_exit_calls == 1u);
     assert(!ws2812_transport_submit(&transport, 34u, &frame, DUTY_0, DUTY_1,
+                                    RESET_SLOTS, pair_0_words,
+                                    PAIR_0_WORDS - 1u, pair_1_words,
+                                    PAIR_1_WORDS, fake_start, fake_stop,
+                                    fake_critical_enter, fake_critical_exit,
+                                    &fake));
+    assert(ws2812_transport_busy_drops(&transport) == 0u);
+    assert(!ws2812_transport_submit(&transport, 34u, &frame, DUTY_0, DUTY_1,
                                     RESET_SLOTS, pair_0_words, PAIR_0_WORDS,
                                     pair_1_words, PAIR_1_WORDS, fake_start,
                                     fake_stop, fake_critical_enter,
                                     fake_critical_exit, &fake));
+    assert(ws2812_transport_busy_drops(&transport) == 1u);
+    assert(ws2812_transport_errors(&transport) == 0u);
 
     ws2812_transport_complete(&transport, 1u);
     assert(transport.state == WS2812_TRANSPORT_ACTIVE);
@@ -175,6 +204,8 @@ void test_ws2812_encoder(void)
                                     pair_1_words, PAIR_1_WORDS, fake_start,
                                     fake_stop, fake_critical_enter,
                                     fake_critical_exit, &fake));
+    assert(ws2812_transport_busy_drops(&transport) == 1u);
+    assert(ws2812_transport_errors(&transport) == 0u);
     assert(ws2812_transport_submit(&transport, 34u, &frame, DUTY_0, DUTY_1,
                                    RESET_SLOTS, pair_0_words, PAIR_0_WORDS,
                                    pair_1_words, PAIR_1_WORDS, fake_start,
@@ -193,6 +224,7 @@ void test_ws2812_encoder(void)
     assert(fake.stop_calls[1] == 0u);
     assert(transport.state == WS2812_TRANSPORT_IDLE);
     assert(ws2812_transport_errors(&transport) == 1u);
+    assert(ws2812_transport_busy_drops(&transport) == 1u);
     assert(fake.critical_enter_calls == 3u);
     assert(fake.critical_exit_calls == 3u);
 
@@ -238,6 +270,7 @@ void test_ws2812_encoder(void)
     assert(reentrant_fake.stop_calls[1] == 1u);
     assert(reentrant_transport.state == WS2812_TRANSPORT_IDLE);
     assert(ws2812_transport_errors(&reentrant_transport) == 1u);
+    assert(ws2812_transport_busy_drops(&reentrant_transport) == 0u);
     assert(reentrant_fake.critical_enter_calls == 1u);
     assert(reentrant_fake.critical_exit_calls == 1u);
 
@@ -275,4 +308,24 @@ void test_ws2812_encoder(void)
                                    &critical_fake));
     assert(critical_fake.critical_enter_calls == 3u);
     assert(critical_fake.critical_exit_calls == 3u);
+
+    Ws2812Transport raced_transport;
+    FakePairs raced_fake = {
+        .start_succeeds = {true, true},
+        .become_busy_on_critical_enter = true,
+        .transport = &raced_transport
+    };
+    ws2812_transport_init(&raced_transport);
+    assert(!ws2812_transport_submit(&raced_transport, 0u, &frame, DUTY_0,
+                                    DUTY_1, RESET_SLOTS, pair_0_words,
+                                    PAIR_0_WORDS, pair_1_words,
+                                    PAIR_1_WORDS, fake_start, fake_stop,
+                                    fake_critical_enter, fake_critical_exit,
+                                    &raced_fake));
+    assert(raced_fake.start_calls[0] == 0u);
+    assert(raced_fake.start_calls[1] == 0u);
+    assert(raced_fake.critical_enter_calls == 1u);
+    assert(raced_fake.critical_exit_calls == 1u);
+    assert(ws2812_transport_busy_drops(&raced_transport) == 1u);
+    assert(ws2812_transport_errors(&raced_transport) == 0u);
 }

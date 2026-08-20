@@ -88,6 +88,13 @@ if(DIAGNOSTIC_CURRENT_ASSIGNMENT STREQUAL "")
     message(FATAL_ERROR "Lighting diagnostic-current assignment was not preserved")
 endif()
 
+string(FIND "${APP_SOURCE}" "ws2812_port_busy_drops()"
+    WS2812_BUSY_DIAGNOSTIC_AT)
+if(WS2812_BUSY_DIAGNOSTIC_AT EQUAL -1)
+    message(FATAL_ERROR
+        "WS2812 busy-frame drops must be exposed through runtime diagnostics")
+endif()
+
 string(FIND "${APP_SOURCE}"
     "diagnostics_watchdog_mark(DIAG_PROGRESS_LED);" WATCHDOG_MARK_AT)
 if(WATCHDOG_MARK_AT EQUAL -1)

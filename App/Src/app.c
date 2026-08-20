@@ -171,7 +171,7 @@ void App_Tick(uint32_t now_ms)
     const uint32_t age = client.last_valid_ms == 0u
                            ? now_ms : (uint32_t)(now_ms - client.last_valid_ms);
     diagnostics_set_runtime(fps, max_loop_us, client.timeouts, frame_misses,
-                            age, led_current_ma);
+                            age, led_current_ma, ws2812_port_busy_drops());
     last_diag_ms = now_ms;
   }
   diagnostics_tick(now_ms);

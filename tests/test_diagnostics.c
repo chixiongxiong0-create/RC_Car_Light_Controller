@@ -86,6 +86,13 @@ static void test_watchdog_start_results(void)
     assert(diagnostics_watchdog_is_started());
 }
 
+static void test_ws2812_busy_drop_snapshot(void)
+{
+    diagnostics_init();
+    diagnostics_set_runtime(30u, 100u, 2u, 0u, 5u, 42u, 7u);
+    assert(diagnostics_get()->ws2812_busy_drops == 7u);
+}
+
 static void test_touch_probe(void)
 {
     ProbeFake fake = {.hit_address = 0x38u, .chip_id = 0x54u, .vendor_id = 0x11u};
@@ -107,5 +114,6 @@ void test_diagnostics(void)
     test_health();
     test_watchdog_gate();
     test_watchdog_start_results();
+    test_ws2812_busy_drop_snapshot();
     test_touch_probe();
 }

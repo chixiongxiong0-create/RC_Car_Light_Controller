@@ -82,7 +82,8 @@ void diagnostics_set_init_result(bool success)
 
 void diagnostics_set_runtime(uint16_t fps, uint32_t loop_us,
                              uint32_t msp_timeouts, uint32_t frame_misses,
-                             uint32_t msp_age_ms, uint32_t led_current_ma)
+                             uint32_t msp_age_ms, uint32_t led_current_ma,
+                             uint32_t ws2812_busy_drops)
 {
     snapshot.fps = fps;
     if (loop_us > snapshot.max_loop_us) {
@@ -92,6 +93,7 @@ void diagnostics_set_runtime(uint16_t fps, uint32_t loop_us,
     snapshot.frame_misses = frame_misses;
     snapshot.msp_age_ms = msp_age_ms;
     snapshot.led_current_ma = led_current_ma;
+    snapshot.ws2812_busy_drops = ws2812_busy_drops;
 }
 
 void diagnostics_set_touch_available(bool available)

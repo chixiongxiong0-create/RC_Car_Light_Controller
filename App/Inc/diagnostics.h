@@ -21,6 +21,7 @@ typedef struct {
     uint32_t frame_misses;
     uint32_t msp_age_ms;
     uint32_t led_current_ma;
+    uint32_t ws2812_busy_drops;
     uint32_t reset_flags;
     bool touch_available;
 } DiagnosticsSnapshot;
@@ -53,7 +54,8 @@ void diagnostics_tick(uint32_t now_ms);
 void diagnostics_set_init_result(bool success);
 void diagnostics_set_runtime(uint16_t fps, uint32_t loop_us,
                              uint32_t msp_timeouts, uint32_t frame_misses,
-                             uint32_t msp_age_ms, uint32_t led_current_ma);
+                             uint32_t msp_age_ms, uint32_t led_current_ma,
+                             uint32_t ws2812_busy_drops);
 void diagnostics_set_touch_available(bool available);
 bool diagnostics_watchdog_start(void);
 void diagnostics_watchdog_apply_start_result(WatchdogStartResult result);

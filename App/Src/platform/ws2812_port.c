@@ -6,6 +6,36 @@
 #include "tim.h"
 #endif
 
+enum {
+    WS2812_T0H_NS = 350u,
+    WS2812_T1H_NS = 700u
+};
+
+bool ws2812_compare_ticks(uint32_t timer_clock_hz, uint32_t period_ticks,
+                          uint32_t *duty_0, uint32_t *duty_1)
+{
+    if (timer_clock_hz == 0u || period_ticks == 0u || duty_0 == NULL ||
+        duty_1 == NULL) {
+        return false;
+    }
+
+    const uint32_t calculated_duty_0 = (uint32_t)(
+        ((uint64_t)timer_clock_hz * WS2812_T0H_NS + 500000000u) /
+        1000000000u);
+    const uint32_t calculated_duty_1 = (uint32_t)(
+        ((uint64_t)timer_clock_hz * WS2812_T1H_NS + 500000000u) /
+        1000000000u);
+    if (calculated_duty_0 == 0u ||
+        calculated_duty_0 >= calculated_duty_1 ||
+        calculated_duty_1 >= period_ticks) {
+        return false;
+    }
+
+    *duty_0 = calculated_duty_0;
+    *duty_1 = calculated_duty_1;
+    return true;
+}
+
 static size_t encode_component_pair(uint8_t first, uint8_t second,
                                     uint32_t duty_0, uint32_t duty_1,
                                     uint32_t *interleaved, size_t offset)
@@ -17,19 +47,36 @@ static size_t encode_component_pair(uint8_t first, uint8_t second,
     return offset;
 }
 
+static bool pair_encoding_slots(const LedRgb *first, const LedRgb *second,
+                                size_t pixel_count, uint32_t duty_0,
+                                uint32_t duty_1, size_t reset_slots,
+                                const uint32_t *interleaved,
+                                size_t capacity_words, size_t *slots_out)
+{
+    if (first == NULL || second == NULL || interleaved == NULL ||
+        slots_out == NULL || pixel_count == 0u ||
+        reset_slots < WS2812_MIN_RESET_SLOTS || duty_0 >= duty_1 ||
+        pixel_count > (SIZE_MAX - reset_slots) / 24u) {
+        return false;
+    }
+
+    const size_t slots = pixel_count * 24u + reset_slots;
+    if (slots > SIZE_MAX / 2u || capacity_words < slots * 2u) {
+        return false;
+    }
+    *slots_out = slots;
+    return true;
+}
+
 size_t ws2812_encode_pair(const LedRgb *first, const LedRgb *second,
                           size_t pixel_count, uint32_t duty_0,
                           uint32_t duty_1, size_t reset_slots,
                           uint32_t *interleaved, size_t capacity_words)
 {
-    if (first == NULL || second == NULL || interleaved == NULL ||
-        pixel_count == 0u || reset_slots < WS2812_MIN_RESET_SLOTS ||
-        duty_0 >= duty_1 || pixel_count > (SIZE_MAX - reset_slots) / 24u) {
-        return 0u;
-    }
-
-    const size_t slots = pixel_count * 24u + reset_slots;
-    if (slots > SIZE_MAX / 2u || capacity_words < slots * 2u) {
+    size_t slots = 0u;
+    if (!pair_encoding_slots(first, second, pixel_count, duty_0, duty_1,
+                             reset_slots, interleaved, capacity_words,
+                             &slots)) {
         return 0u;
     }
 
@@ -63,6 +110,7 @@ void ws2812_transport_init(Ws2812Transport *transport)
     transport->pair_complete[1] = false;
     transport->last_submit_ms = UINT32_MAX - (WS2812_RATE_LIMIT_MS - 1u);
     transport->error_count = 0u;
+    transport->busy_drop_count = 0u;
 }
 
 static bool transport_pairs_complete(const Ws2812Transport *transport)
@@ -99,9 +147,26 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
                              Ws2812CriticalExitFn critical_exit, void *ctx)
 {
     if (transport == NULL || frame == NULL || start == NULL || stop == NULL ||
-        critical_enter == NULL || critical_exit == NULL ||
-        transport->state != WS2812_TRANSPORT_IDLE ||
-        !ws2812_can_submit(now_ms, transport->last_submit_ms, true)) {
+        critical_enter == NULL || critical_exit == NULL) {
+        return false;
+    }
+
+    size_t validated_slots = 0u;
+    if (!pair_encoding_slots(
+            frame->groups[0], frame->groups[1], WS2812_GROUP_LENGTHS[0],
+            duty_0, duty_1, reset_slots, pair_0_words,
+            pair_0_capacity_words, &validated_slots) ||
+        !pair_encoding_slots(
+            frame->groups[2], frame->groups[3], WS2812_GROUP_LENGTHS[2],
+            duty_0, duty_1, reset_slots, pair_1_words,
+            pair_1_capacity_words, &validated_slots)) {
+        return false;
+    }
+    if (transport->state != WS2812_TRANSPORT_IDLE) {
+        transport->busy_drop_count++;
+        return false;
+    }
+    if (!ws2812_can_submit(now_ms, transport->last_submit_ms, true)) {
         return false;
     }
 
@@ -116,8 +181,12 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
     }
 
     const uintptr_t saved_state = critical_enter(ctx);
-    if (transport->state != WS2812_TRANSPORT_IDLE ||
-        !ws2812_can_submit(now_ms, transport->last_submit_ms, true)) {
+    if (transport->state != WS2812_TRANSPORT_IDLE) {
+        transport->busy_drop_count++;
+        critical_exit(saved_state, ctx);
+        return false;
+    }
+    if (!ws2812_can_submit(now_ms, transport->last_submit_ms, true)) {
         critical_exit(saved_state, ctx);
         return false;
     }
@@ -188,6 +257,11 @@ void ws2812_transport_error(Ws2812Transport *transport, unsigned pair,
 uint32_t ws2812_transport_errors(const Ws2812Transport *transport)
 {
     return transport != NULL ? transport->error_count : 0u;
+}
+
+uint32_t ws2812_transport_busy_drops(const Ws2812Transport *transport)
+{
+    return transport != NULL ? transport->busy_drop_count : 0u;
 }
 
 #ifndef WS2812_HOST_TEST
@@ -345,11 +419,9 @@ void ws2812_port_init(void)
     MX_TIM3_Init();
 
     const uint32_t period_ticks = htim2.Init.Period + 1u;
-    ws2812_duty_0 = period_ticks / 3u;
-    ws2812_duty_1 = (period_ticks * 2u) / 3u;
-    if (period_ticks == 0u || ws2812_duty_0 == 0u ||
-        ws2812_duty_0 >= ws2812_duty_1 ||
-        ws2812_duty_1 >= period_ticks || htim3.Init.Period != htim2.Init.Period) {
+    if (htim3.Init.Period != htim2.Init.Period ||
+        !ws2812_compare_ticks(ws2812_timer_clock_hz(), period_ticks,
+                              &ws2812_duty_0, &ws2812_duty_1)) {
         ws2812_all_pins_low();
         return;
     }
@@ -368,6 +440,11 @@ bool ws2812_port_submit(uint32_t now_ms, const Ws2812Frame *frame)
         WS2812_PAIR_0_WORDS, ws2812_pair_1_words, WS2812_PAIR_1_WORDS,
         ws2812_pair_start, ws2812_pair_stop, ws2812_critical_enter,
         ws2812_critical_exit, NULL);
+}
+
+uint32_t ws2812_port_busy_drops(void)
+{
+    return ws2812_transport_busy_drops(&ws2812_transport);
 }
 
 void ws2812_port_pair_complete(unsigned pair)

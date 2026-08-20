@@ -32,7 +32,6 @@
 
 /* External functions --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_spi1_tx;
-extern DMA_HandleTypeDef hdma_spi3_tx;
 extern DMA_HandleTypeDef hdma_tim2_up;
 extern DMA_HandleTypeDef hdma_tim3_up;
 
@@ -155,43 +154,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 		HAL_NVIC_EnableIRQ(SPI1_IRQn);
 #endif
 	  }
-	  else if (hspi->Instance == SPI3)
-	  {
-	    /* Use the existing PLL1Q SPI123 kernel clock; do not perturb LTDC PLL3. */
-	    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SPI3;
-	    PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL;
-	    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
-	      Error_Handler();
-	    }
-	    __HAL_RCC_SPI3_CLK_ENABLE();
-	    __HAL_RCC_GPIOB_CLK_ENABLE();
-	    __HAL_RCC_DMA1_CLK_ENABLE();
-	    GPIO_InitStruct.Pin = GPIO_PIN_5;
-	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	    GPIO_InitStruct.Pull = GPIO_NOPULL;
-	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-	    GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-	    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-	    hdma_spi3_tx.Instance = DMA1_Stream1;
-	    hdma_spi3_tx.Init.Request = DMA_REQUEST_SPI3_TX;
-	    hdma_spi3_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
-	    hdma_spi3_tx.Init.PeriphInc = DMA_PINC_DISABLE;
-	    hdma_spi3_tx.Init.MemInc = DMA_MINC_ENABLE;
-	    hdma_spi3_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-	    hdma_spi3_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-	    hdma_spi3_tx.Init.Mode = DMA_NORMAL;
-	    hdma_spi3_tx.Init.Priority = DMA_PRIORITY_HIGH;
-	    hdma_spi3_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-	    if (HAL_DMA_Init(&hdma_spi3_tx) != HAL_OK) {
-	      Error_Handler();
-	    }
-	    __HAL_LINKDMA(hspi, hdmatx, hdma_spi3_tx);
-	    HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
-	    HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
-	    HAL_NVIC_SetPriority(SPI3_IRQn, 5, 0);
-	    HAL_NVIC_EnableIRQ(SPI3_IRQn);
-  }
 }
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
