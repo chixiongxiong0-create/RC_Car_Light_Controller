@@ -17,9 +17,18 @@ typedef struct {
     unsigned start_calls[2];
     unsigned stop_calls[2];
     bool start_succeeds[2];
+    bool error_during_pair_0_start;
     const uint32_t *started_words[2];
     size_t started_slots[2];
+    Ws2812Transport *transport;
 } FakePairs;
+
+static void fake_stop(unsigned pair, void *ctx)
+{
+    FakePairs *fake = ctx;
+    assert(pair < 2u);
+    fake->stop_calls[pair]++;
+}
 
 static bool fake_start(unsigned pair, const uint32_t *words, size_t slots,
                        void *ctx)
@@ -31,14 +40,10 @@ static bool fake_start(unsigned pair, const uint32_t *words, size_t slots,
     fake->start_calls[pair]++;
     fake->started_words[pair] = words;
     fake->started_slots[pair] = slots;
+    if (pair == 0u && fake->error_during_pair_0_start) {
+        ws2812_transport_error(fake->transport, pair, fake_stop, fake);
+    }
     return fake->start_succeeds[pair];
-}
-
-static void fake_stop(unsigned pair, void *ctx)
-{
-    FakePairs *fake = ctx;
-    assert(pair < 2u);
-    fake->stop_calls[pair]++;
 }
 
 void test_ws2812_encoder(void)
@@ -64,8 +69,10 @@ void test_ws2812_encoder(void)
     assert(out[17] == DUTY_1);
     assert(out[32] == DUTY_0);
     assert(out[33] == DUTY_0);
-    assert(out[2u * (PAIR_0_PIXELS * 24u)] == 0u);
-    assert(out[2u * (PAIR_0_PIXELS * 24u) + 1u] == 0u);
+    for (size_t word = 2u * PAIR_0_PIXELS * 24u;
+         word < 2u * slots; ++word) {
+        assert(out[word] == 0u);
+    }
     assert(out[2u * slots] == 0xA55Au);
     assert(out[2u * slots + 1u] == 0xA55Au);
 
@@ -101,7 +108,7 @@ void test_ws2812_encoder(void)
                                     RESET_SLOTS, pair_0_words,
                                     PAIR_0_WORDS - 1u, pair_1_words,
                                     PAIR_1_WORDS, fake_start, fake_stop, &fake));
-    assert(transport.idle);
+    assert(transport.state == WS2812_TRANSPORT_IDLE);
     assert(fake.start_calls[0] == 0u);
     assert(fake.start_calls[1] == 0u);
 
@@ -115,16 +122,30 @@ void test_ws2812_encoder(void)
     assert(fake.started_words[1] == pair_1_words);
     assert(fake.started_slots[0] == PAIR_0_PIXELS * 24u + RESET_SLOTS);
     assert(fake.started_slots[1] == PAIR_1_PIXELS * 24u + RESET_SLOTS);
-    assert(!transport.idle);
+    assert(pair_1_words[0] == DUTY_0);
+    assert(pair_1_words[1] == DUTY_1);
+    assert(pair_1_words[32] == DUTY_1);
+    assert(pair_1_words[33] == DUTY_0);
+    for (size_t word = 2u * PAIR_0_PIXELS * 24u;
+         word < PAIR_0_WORDS; ++word) {
+        assert(pair_0_words[word] == 0u);
+    }
+    for (size_t word = 2u * PAIR_1_PIXELS * 24u;
+         word < PAIR_1_WORDS; ++word) {
+        assert(pair_1_words[word] == 0u);
+    }
+    assert(transport.state == WS2812_TRANSPORT_ACTIVE);
     assert(!ws2812_transport_submit(&transport, 34u, &frame, DUTY_0, DUTY_1,
                                     RESET_SLOTS, pair_0_words, PAIR_0_WORDS,
                                     pair_1_words, PAIR_1_WORDS, fake_start,
                                     fake_stop, &fake));
 
     ws2812_transport_complete(&transport, 1u);
-    assert(!transport.idle);
+    assert(transport.state == WS2812_TRANSPORT_ACTIVE);
+    assert(!transport.pair_complete[0]);
+    assert(transport.pair_complete[1]);
     ws2812_transport_complete(&transport, 0u);
-    assert(transport.idle);
+    assert(transport.state == WS2812_TRANSPORT_IDLE);
     assert(!ws2812_transport_submit(&transport, 33u, &frame, DUTY_0, DUTY_1,
                                     RESET_SLOTS, pair_0_words, PAIR_0_WORDS,
                                     pair_1_words, PAIR_1_WORDS, fake_start,
@@ -143,7 +164,7 @@ void test_ws2812_encoder(void)
                                     fake_stop, &fake));
     assert(fake.stop_calls[0] == 1u);
     assert(fake.stop_calls[1] == 0u);
-    assert(transport.idle);
+    assert(transport.state == WS2812_TRANSPORT_IDLE);
     assert(ws2812_transport_errors(&transport) == 1u);
 
     fake.start_succeeds[1] = true;
@@ -154,8 +175,9 @@ void test_ws2812_encoder(void)
     ws2812_transport_error(&transport, 1u, fake_stop, &fake);
     assert(fake.stop_calls[0] == 2u);
     assert(fake.stop_calls[1] == 1u);
-    assert(transport.idle);
-    assert(transport.complete_mask == 0u);
+    assert(transport.state == WS2812_TRANSPORT_IDLE);
+    assert(!transport.pair_complete[0]);
+    assert(!transport.pair_complete[1]);
     assert(ws2812_transport_errors(&transport) == 2u);
     ws2812_transport_error(&transport, 0u, fake_stop, &fake);
     assert(ws2812_transport_errors(&transport) == 2u);
@@ -165,4 +187,23 @@ void test_ws2812_encoder(void)
                                    RESET_SLOTS, pair_0_words, PAIR_0_WORDS,
                                    pair_1_words, PAIR_1_WORDS, fake_start,
                                    fake_stop, &fake));
+
+    Ws2812Transport reentrant_transport;
+    FakePairs reentrant_fake = {
+        .start_succeeds = {true, true},
+        .error_during_pair_0_start = true,
+        .transport = &reentrant_transport
+    };
+    ws2812_transport_init(&reentrant_transport);
+    assert(!ws2812_transport_submit(&reentrant_transport, 0u, &frame, DUTY_0,
+                                    DUTY_1, RESET_SLOTS, pair_0_words,
+                                    PAIR_0_WORDS, pair_1_words,
+                                    PAIR_1_WORDS, fake_start, fake_stop,
+                                    &reentrant_fake));
+    assert(reentrant_fake.start_calls[0] == 1u);
+    assert(reentrant_fake.start_calls[1] == 0u);
+    assert(reentrant_fake.stop_calls[0] == 1u);
+    assert(reentrant_fake.stop_calls[1] == 1u);
+    assert(reentrant_transport.state == WS2812_TRANSPORT_IDLE);
+    assert(ws2812_transport_errors(&reentrant_transport) == 1u);
 }

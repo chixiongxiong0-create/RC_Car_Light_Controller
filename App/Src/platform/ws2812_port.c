@@ -54,24 +54,32 @@ void ws2812_transport_init(Ws2812Transport *transport)
         return;
     }
 
-    transport->idle = true;
-    transport->complete_mask = 0u;
+    transport->state = WS2812_TRANSPORT_IDLE;
+    transport->pair_complete[0] = false;
+    transport->pair_complete[1] = false;
     transport->last_submit_ms = UINT32_MAX - (WS2812_RATE_LIMIT_MS - 1u);
     transport->error_count = 0u;
+}
+
+static bool transport_pairs_complete(const Ws2812Transport *transport)
+{
+    return transport->pair_complete[0] && transport->pair_complete[1];
 }
 
 static void transport_fail(Ws2812Transport *transport, Ws2812PairStopFn stop,
                            void *ctx, bool stop_pair_0, bool stop_pair_1)
 {
+    transport->pair_complete[0] = false;
+    transport->pair_complete[1] = false;
+    transport->state = WS2812_TRANSPORT_IDLE;
+    transport->error_count++;
+
     if (stop_pair_0) {
         stop(0u, ctx);
     }
     if (stop_pair_1) {
         stop(1u, ctx);
     }
-    transport->error_count++;
-    transport->complete_mask = 0u;
-    transport->idle = true;
 }
 
 bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
@@ -85,7 +93,8 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
                              Ws2812PairStopFn stop, void *ctx)
 {
     if (transport == NULL || frame == NULL || start == NULL || stop == NULL ||
-        !ws2812_can_submit(now_ms, transport->last_submit_ms, transport->idle)) {
+        transport->state != WS2812_TRANSPORT_IDLE ||
+        !ws2812_can_submit(now_ms, transport->last_submit_ms, true)) {
         return false;
     }
 
@@ -99,38 +108,57 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
         return false;
     }
 
-    transport->idle = false;
-    transport->complete_mask = 0u;
-    if (!start(0u, pair_0_words, pair_0_slots, ctx)) {
+    transport->pair_complete[0] = false;
+    transport->pair_complete[1] = false;
+    transport->state = WS2812_TRANSPORT_STARTING;
+    const bool pair_0_started = start(0u, pair_0_words, pair_0_slots, ctx);
+    if (transport->state != WS2812_TRANSPORT_STARTING) {
+        return false;
+    }
+    if (!pair_0_started) {
         transport_fail(transport, stop, ctx, false, false);
         return false;
     }
-    if (!start(1u, pair_1_words, pair_1_slots, ctx)) {
+
+    const bool pair_1_started = start(1u, pair_1_words, pair_1_slots, ctx);
+    if (pair_1_started && transport->state == WS2812_TRANSPORT_IDLE &&
+        transport_pairs_complete(transport)) {
+        transport->last_submit_ms = now_ms;
+        return true;
+    }
+    if (transport->state != WS2812_TRANSPORT_STARTING) {
+        return false;
+    }
+    if (!pair_1_started) {
         transport_fail(transport, stop, ctx, true, false);
         return false;
     }
 
     transport->last_submit_ms = now_ms;
+    transport->state = transport_pairs_complete(transport)
+                           ? WS2812_TRANSPORT_IDLE
+                           : WS2812_TRANSPORT_ACTIVE;
     return true;
 }
 
 void ws2812_transport_complete(Ws2812Transport *transport, unsigned pair)
 {
-    if (transport == NULL || transport->idle || pair >= WS2812_PAIR_COUNT) {
+    if (transport == NULL || transport->state == WS2812_TRANSPORT_IDLE ||
+        pair >= WS2812_PAIR_COUNT) {
         return;
     }
 
-    transport->complete_mask |= (uint8_t)(1u << pair);
-    if (transport->complete_mask == 0x03u) {
-        transport->idle = true;
+    transport->pair_complete[pair] = true;
+    if (transport_pairs_complete(transport)) {
+        transport->state = WS2812_TRANSPORT_IDLE;
     }
 }
 
 void ws2812_transport_error(Ws2812Transport *transport, unsigned pair,
                             Ws2812PairStopFn stop, void *ctx)
 {
-    if (transport == NULL || transport->idle || pair >= WS2812_PAIR_COUNT ||
-        stop == NULL) {
+    if (transport == NULL || transport->state == WS2812_TRANSPORT_IDLE ||
+        pair >= WS2812_PAIR_COUNT || stop == NULL) {
         return;
     }
 

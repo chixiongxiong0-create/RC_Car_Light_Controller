@@ -23,11 +23,18 @@ typedef bool (*Ws2812PairStartFn)(unsigned pair, const uint32_t *words,
                                   size_t slots, void *ctx);
 typedef void (*Ws2812PairStopFn)(unsigned pair, void *ctx);
 
+typedef enum {
+    WS2812_TRANSPORT_IDLE,
+    WS2812_TRANSPORT_STARTING,
+    WS2812_TRANSPORT_ACTIVE
+} Ws2812TransportState;
+
 typedef struct {
-    bool idle;
-    uint8_t complete_mask;
+    /* Foreground submit and pair callbacks share these ISR-visible fields. */
+    volatile Ws2812TransportState state;
+    volatile bool pair_complete[WS2812_PAIR_COUNT];
     uint32_t last_submit_ms;
-    uint32_t error_count;
+    volatile uint32_t error_count;
 } Ws2812Transport;
 
 void ws2812_transport_init(Ws2812Transport *transport);
