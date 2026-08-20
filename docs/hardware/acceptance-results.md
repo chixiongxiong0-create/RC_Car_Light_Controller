@@ -4,6 +4,25 @@
 触摸和看门狗复位的项目必须在真实硬件上执行。尚未执行的硬件结果统一为 `PENDING`，
 不得以编译或主机单元测试标记为通过。
 
+## 四路 WS2812 当前验收范围（2026-08-20）
+
+本次变更将像素输出改为四路独立 4/4/8/8 组。以下是本次变更唯一有效的实体验收
+记录；**每一项均为 `PENDING`**。本任务只完成软件构建与工件检查，**没有烧录、没有
+连接或操作硬件**，因此不宣称任何实体成功。下方早期启动链历史记录不能作为四路
+WS2812、供电、波形、顺序、复位、链路丢失或热/电流验收证据。
+
+| ID | 项目 | 期望/测点 | 状态 | 证据 |
+|---|---|---|---|---|
+| 4WS-01 | WS1 身份与 DIN 顺序 | PA0/D9 -> 100R -> AHCT 1A/1Y -> 330R -> WS1 DIN，4 像素；记录左/右身份 | PENDING | — |
+| 4WS-02 | WS2 身份与 DIN 顺序 | PB3/D12 -> 100R -> AHCT 2A/2Y -> 330R -> WS2 DIN，4 像素；记录左/右身份 | PENDING | — |
+| 4WS-03 | WS3 身份与 DIN 顺序 | PB4/MISO -> 100R -> AHCT 3A/3Y -> 330R -> WS3 DIN，8 像素 | PENDING | — |
+| 4WS-04 | WS4 身份与 DIN 顺序 | PB5/MOSI -> 100R -> AHCT 4A/4Y -> 330R -> WS4 DIN，8 像素 | PENDING | — |
+| 4WS-05 | 74AHCT125 与保护 | protected 5 V、全部 OE 低、100 nF 本地去耦、无 5 V 回灌 MCU | PENDING | — |
+| 4WS-06 | 电源与电流 | fused 5 V/3 A BEC、受保护输入 bulk、可选每远端组 100 uF、1 A 软件预算 | PENDING | — |
+| 4WS-07 | 波形与复位 | 在每组 AHCT 输出、330R 后的 DIN 测点测量数据高/低、周期和 reset low | PENDING | — |
+| 4WS-08 | 温升 | BEC、74AHCT125、四组 LED 和线束在最大策略亮度下的温度 | PENDING | — |
+| 4WS-09 | 链路丢失 | 有过真实链路后，MSP stale/lost 时所有实体灯具的安全行为 | PENDING | — |
+
 ## 任务 12 进度
 
 | 阶段 | 状态 | 完成条件/下一步 |
@@ -131,8 +150,21 @@ git diff --check
 
 ## WS2812 波形与电流
 
-在**电平转换器输出端、串联电阻后的 DIN 测点**测量。最终实现是 SPI3 3.4375 MHz、
-4-bit `0=1000`、`1=1110`；不得引用旧的 2.4 MHz/3-bit 测量。
+在**74AHCT125 输出端、330 Ω 串联电阻后的 DIN 测点**测量。最终实现是 TIM2/TIM3
+PWM DMA-burst 的四路独立输出；不得引用旧的 SPI3 单链 2.4 MHz/3-bit 或 3.4375 MHz/4-bit
+测量。
+
+四路 PWM/DMA 实现必须分别在 WS1--WS4 的 74AHCT125 输出端、330 Ω 后测量。每个
+数据高/低、单元周期、复位低电平、颜色/位置（含左/右身份）、峰值/平均电流、5 V、
+复位、帧率影响及热测量均为 `PENDING`；不能沿用下列旧的一链 10/30 颗模板结果。
+
+| ID | 组/数量 | 数据/周期/复位测量 | 左右/位置身份 | 电流、5 V、复位、FPS、温度 | 状态 | 时间戳/证据 |
+|---|---|---|---|---|---|---|
+| 4WS-WF-01 | WS1 / 4 | PENDING | PENDING | PENDING | PENDING | — |
+| 4WS-WF-02 | WS2 / 4 | PENDING | PENDING | PENDING | PENDING | — |
+| 4WS-WF-03 | WS3 / 8 | PENDING | PENDING | PENDING | PENDING | — |
+| 4WS-WF-04 | WS4 / 8 | PENDING | PENDING | PENDING | PENDING | — |
+| 4WS-WF-05 | 4 groups / 24 | PENDING — concurrent transfer and all reset lows | PENDING | PENDING | PENDING | — |
 
 | ID | 条件 | T0H实测 | T1H实测 | 单元周期实测 | reset low实测 | 状态 | 时间戳/证据 | 备注 |
 |---|---|---:|---:|---:|---:|---|---|---|
