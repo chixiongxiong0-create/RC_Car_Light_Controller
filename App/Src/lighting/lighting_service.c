@@ -16,7 +16,6 @@ uint32_t lighting_service_tick(LightingService *service,
                                const VehicleState *real_state,
                                bool low_battery,
                                bool board_fault,
-                               size_t pixel_count,
                                LightingApplyFn apply,
                                LightingSubmitFn submit,
                                void *ctx)
@@ -24,19 +23,14 @@ uint32_t lighting_service_tick(LightingService *service,
     if (service == NULL) {
         return 0u;
     }
-    if (pixel_count > LED_MAX_PIXELS) {
-        pixel_count = LED_MAX_PIXELS;
-    }
-
     lighting_controller_render(&service->controller, now_ms, real_state,
-                               low_battery, board_fault, &service->frame,
-                               pixel_count);
+                               low_battery, board_fault, &service->frame);
     if (apply != NULL) {
         apply(service->frame.front_duty,
               service->frame.roof_spot_duty, ctx);
     }
     if (submit != NULL) {
-        (void)submit(now_ms, service->frame.pixels, pixel_count, ctx);
+        (void)submit(now_ms, &service->frame.ws2812, ctx);
     }
     return service->frame.estimated_ma;
 }

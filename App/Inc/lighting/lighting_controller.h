@@ -1,10 +1,9 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
-#include "led/led_controller.h"
+#include "led/ws2812_frame.h"
 #include "vehicle_state.h"
 
 typedef enum {
@@ -24,7 +23,7 @@ typedef struct {
     uint16_t roof_spot_duty;
     uint32_t estimated_ma;
     RoofLightMode roof_mode;
-    LedRgb pixels[LED_MAX_PIXELS];
+    Ws2812Frame ws2812;
 } LightingFrame;
 
 typedef struct {
@@ -43,5 +42,4 @@ void lighting_controller_render(LightingController *controller,
                                 const VehicleState *state,
                                 bool low_battery,
                                 bool board_fault,
-                                LightingFrame *frame,
-                                size_t pixel_count);
+                                LightingFrame *frame);

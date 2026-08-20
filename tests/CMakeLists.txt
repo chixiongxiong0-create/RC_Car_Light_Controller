@@ -22,6 +22,7 @@ add_executable(unit_tests
     test_low_battery_policy.c
     test_showcase_model.c
     test_led_controller.c
+    ../App/Inc/led/ws2812_frame.h
     test_lighting_controller.c
     test_lighting_service.c
     test_lighting_output_port.c
