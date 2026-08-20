@@ -90,9 +90,12 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
                              uint32_t *pair_1_words,
                              size_t pair_1_capacity_words,
                              Ws2812PairStartFn start,
-                             Ws2812PairStopFn stop, void *ctx)
+                             Ws2812PairStopFn stop,
+                             Ws2812CriticalEnterFn critical_enter,
+                             Ws2812CriticalExitFn critical_exit, void *ctx)
 {
     if (transport == NULL || frame == NULL || start == NULL || stop == NULL ||
+        critical_enter == NULL || critical_exit == NULL ||
         transport->state != WS2812_TRANSPORT_IDLE ||
         !ws2812_can_submit(now_ms, transport->last_submit_ms, true)) {
         return false;
@@ -108,15 +111,24 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
         return false;
     }
 
+    const uintptr_t saved_state = critical_enter(ctx);
+    if (transport->state != WS2812_TRANSPORT_IDLE ||
+        !ws2812_can_submit(now_ms, transport->last_submit_ms, true)) {
+        critical_exit(saved_state, ctx);
+        return false;
+    }
+
     transport->pair_complete[0] = false;
     transport->pair_complete[1] = false;
     transport->state = WS2812_TRANSPORT_STARTING;
     const bool pair_0_started = start(0u, pair_0_words, pair_0_slots, ctx);
     if (transport->state != WS2812_TRANSPORT_STARTING) {
+        critical_exit(saved_state, ctx);
         return false;
     }
     if (!pair_0_started) {
         transport_fail(transport, stop, ctx, false, false);
+        critical_exit(saved_state, ctx);
         return false;
     }
 
@@ -124,13 +136,16 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
     if (pair_1_started && transport->state == WS2812_TRANSPORT_IDLE &&
         transport_pairs_complete(transport)) {
         transport->last_submit_ms = now_ms;
+        critical_exit(saved_state, ctx);
         return true;
     }
     if (transport->state != WS2812_TRANSPORT_STARTING) {
+        critical_exit(saved_state, ctx);
         return false;
     }
     if (!pair_1_started) {
         transport_fail(transport, stop, ctx, true, false);
+        critical_exit(saved_state, ctx);
         return false;
     }
 
@@ -138,6 +153,7 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
     transport->state = transport_pairs_complete(transport)
                            ? WS2812_TRANSPORT_IDLE
                            : WS2812_TRANSPORT_ACTIVE;
+    critical_exit(saved_state, ctx);
     return true;
 }
 

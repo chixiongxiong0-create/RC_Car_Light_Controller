@@ -22,6 +22,8 @@ bool ws2812_can_submit(uint32_t now_ms, uint32_t last_submit_ms, bool idle);
 typedef bool (*Ws2812PairStartFn)(unsigned pair, const uint32_t *words,
                                   size_t slots, void *ctx);
 typedef void (*Ws2812PairStopFn)(unsigned pair, void *ctx);
+typedef uintptr_t (*Ws2812CriticalEnterFn)(void *ctx);
+typedef void (*Ws2812CriticalExitFn)(uintptr_t saved_state, void *ctx);
 
 typedef enum {
     WS2812_TRANSPORT_IDLE,
@@ -46,7 +48,9 @@ bool ws2812_transport_submit(Ws2812Transport *transport, uint32_t now_ms,
                              uint32_t *pair_1_words,
                              size_t pair_1_capacity_words,
                              Ws2812PairStartFn start,
-                             Ws2812PairStopFn stop, void *ctx);
+                             Ws2812PairStopFn stop,
+                             Ws2812CriticalEnterFn critical_enter,
+                             Ws2812CriticalExitFn critical_exit, void *ctx);
 void ws2812_transport_complete(Ws2812Transport *transport, unsigned pair);
 void ws2812_transport_error(Ws2812Transport *transport, unsigned pair,
                             Ws2812PairStopFn stop, void *ctx);
