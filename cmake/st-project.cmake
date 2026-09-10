@@ -127,6 +127,7 @@ target_sources(
     "Core\\Src\\i2c.c"
     "Core\\Src\\main.c"
     "Core\\Src\\octospi.c"
+    "Core\\Src\\spi.c"
     "Core\\Src\\stm32h7xx_hal_msp.c"
     "Core\\Src\\stm32h7xx_it.c"
     "Core\\Src\\syscalls.c"

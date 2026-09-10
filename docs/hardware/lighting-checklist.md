@@ -35,8 +35,8 @@ There are four independent pixel outputs, not one continuous chain. The connecto
 ```text
 PA0/D9   -> 100R -> 74AHCT125 1A/1Y -> 330R -> WS1 DIN (4 pixels)
 PB3/D12  -> 100R -> 74AHCT125 2A/2Y -> 330R -> WS2 DIN (4 pixels)
-PB4/MISO -> 100R -> 74AHCT125 3A/3Y -> 330R -> WS3 DIN (8 pixels)
-PB5/MOSI -> 100R -> 74AHCT125 4A/4Y -> 330R -> WS4 DIN (8 pixels)
+PF11/A1  -> 100R -> 74AHCT125 3A/3Y -> 330R -> WS3 DIN (8 pixels)
+PF12/A3  -> 100R -> 74AHCT125 4A/4Y -> 330R -> WS4 DIN (8 pixels)
 ```
 
 The group order is firmware groups 0..3 and is fixed at 4/4/8/8 pixels (24 total).
@@ -50,7 +50,7 @@ vehicle. Put protected input bulk capacitance on the LED branch; an optional 100
 capacitor may be fitted at each remote group. The 1 A firmware current budget covers
 all 24 pixels, but does not replace BEC, fuse, wire, capacitor, TVS, or current-limit
 protection. No 5 V source, AHCT output, or WS2812 DOUT may feed back into PA0, PB3,
-PB4, or PB5.
+PF11, or PF12.
 
 ## Light behavior and controls
 

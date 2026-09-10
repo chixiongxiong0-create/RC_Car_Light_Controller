@@ -292,7 +292,7 @@ static TIM_HandleTypeDef *ws2812_pair_timer(unsigned pair)
         return &htim2;
     }
     if (pair == 1u) {
-        return &htim3;
+        return &htim24;
     }
     return NULL;
 }
@@ -303,6 +303,7 @@ static void ws2812_pair_pins_low(unsigned pair)
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOF_CLK_ENABLE();
     gpio.Mode = GPIO_MODE_OUTPUT_PP;
     gpio.Pull = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -315,9 +316,9 @@ static void ws2812_pair_pins_low(unsigned pair)
         gpio.Pin = GPIO_PIN_3;
         HAL_GPIO_Init(GPIOB, &gpio);
     } else if (pair == 1u) {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_RESET);
-        gpio.Pin = GPIO_PIN_4 | GPIO_PIN_5;
-        HAL_GPIO_Init(GPIOB, &gpio);
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
+        gpio.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+        HAL_GPIO_Init(GPIOF, &gpio);
     }
 }
 
@@ -416,10 +417,10 @@ void ws2812_port_init(void)
     ws2812_transport_init(&ws2812_transport);
     ws2812_all_pins_low();
     MX_TIM2_Init();
-    MX_TIM3_Init();
+    MX_TIM24_Init();
 
     const uint32_t period_ticks = htim2.Init.Period + 1u;
-    if (htim3.Init.Period != htim2.Init.Period ||
+    if (htim24.Init.Period != htim2.Init.Period ||
         !ws2812_compare_ticks(ws2812_timer_clock_hz(), period_ticks,
                               &ws2812_duty_0, &ws2812_duty_1)) {
         ws2812_all_pins_low();
@@ -472,7 +473,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim == &htim2) {
         ws2812_port_pair_complete(0u);
-    } else if (htim == &htim3) {
+    } else if (htim == &htim24) {
         ws2812_port_pair_complete(1u);
     }
 }
@@ -481,7 +482,7 @@ void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim)
 {
     if (htim == &htim2) {
         ws2812_port_pair_error(0u);
-    } else if (htim == &htim3) {
+    } else if (htim == &htim24) {
         ws2812_port_pair_error(1u);
     }
 }

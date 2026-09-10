@@ -40,7 +40,7 @@ extern DMA_HandleTypeDef hdma_spi1_tx;
 extern SPI_HandleTypeDef hspi1;
 extern UART_HandleTypeDef huart3;
 extern DMA_HandleTypeDef hdma_tim2_up;
-extern DMA_HandleTypeDef hdma_tim3_up;
+extern DMA_HandleTypeDef hdma_tim24_up;
 
 /******************************************************************************/
 /*           Cortex Processor Interruption and Exception Handlers          */
@@ -200,7 +200,12 @@ void DMA1_Stream2_IRQHandler(void)
 
 void DMA1_Stream3_IRQHandler(void)
 {
-  HAL_DMA_IRQHandler(&hdma_tim3_up);
+  HAL_DMA_IRQHandler(&hdma_tim24_up);
+}
+
+void EXTI4_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
 }
 
 /**

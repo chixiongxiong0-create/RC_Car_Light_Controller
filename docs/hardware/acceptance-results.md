@@ -15,8 +15,8 @@ WS2812、供电、波形、顺序、复位、链路丢失或热/电流验收证�
 |---|---|---|---|---|
 | 4WS-01 | WS1 身份与 DIN 顺序 | PA0/D9 -> 100R -> 74AHCT125 1A/1Y -> 330R -> WS1 DIN，4 像素；记录左/右身份 | PENDING | — |
 | 4WS-02 | WS2 身份与 DIN 顺序 | PB3/D12 -> 100R -> 74AHCT125 2A/2Y -> 330R -> WS2 DIN，4 像素；记录左/右身份 | PENDING | — |
-| 4WS-03 | WS3 身份与 DIN 顺序 | PB4/MISO -> 100R -> 74AHCT125 3A/3Y -> 330R -> WS3 DIN，8 像素 | PENDING | — |
-| 4WS-04 | WS4 身份与 DIN 顺序 | PB5/MOSI -> 100R -> 74AHCT125 4A/4Y -> 330R -> WS4 DIN，8 像素 | PENDING | — |
+| 4WS-03 | WS3 身份与 DIN 顺序 | PF11/A1 -> 100R -> 74AHCT125 3A/3Y -> 330R -> WS3 DIN，8 像素 | PENDING | — |
+| 4WS-04 | WS4 身份与 DIN 顺序 | PF12/A3 -> 100R -> 74AHCT125 4A/4Y -> 330R -> WS4 DIN，8 像素 | PENDING | — |
 | 4WS-05 | 74AHCT125 与保护 | protected 5 V、全部 OE 低、100 nF 本地去耦、无 5 V 回灌 MCU | PENDING | — |
 | 4WS-06 | 电源与电流 | fused 5 V/3 A BEC、受保护输入 bulk、可选每远端组 100 uF、1 A 软件预算 | PENDING | — |
 | 4WS-07 | 波形与复位 | 在每组 74AHCT125 输出、330R 后的 DIN 测点测量数据高/低、周期和 reset low | PENDING | — |
@@ -150,7 +150,7 @@ git diff --check
 
 ## WS2812 波形与电流
 
-在**74AHCT125 输出端、330 Ω 串联电阻后的 DIN 测点**测量。最终实现是 TIM2/TIM3
+在**74AHCT125 输出端、330 Ω 串联电阻后的 DIN 测点**测量。最终实现是 TIM2/TIM24
 PWM DMA-burst 的四路独立输出；不得引用旧的 SPI3 单链 2.4 MHz/3-bit 或 3.4375 MHz/4-bit
 测量。
 

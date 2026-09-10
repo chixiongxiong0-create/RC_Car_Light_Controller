@@ -6,6 +6,7 @@
 #include "ltdc.h"
 #include "octospi.h"
 #include "gpio.h"
+#include "spi.h"
 
 /* Private includes ----------------------------------------------------------*/
 #include "wio_lite_ai.h"
@@ -95,6 +96,7 @@ static void Hardware_Init(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_SPI6_Init();
   
   BSP_LED_Init(LED_RED);
   BSP_LED_Init(LED_YELLOW);

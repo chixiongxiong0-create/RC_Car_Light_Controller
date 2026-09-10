@@ -19,8 +19,8 @@ USART3 必须独占给 MSP，不能与 ELRS/CRSF UART 共用。TX/RX 交叉连�
 ```text
 PA0/D9   -> 100R -> 74AHCT125 1A/1Y -> 330R -> WS1 DIN (4 pixels)
 PB3/D12  -> 100R -> 74AHCT125 2A/2Y -> 330R -> WS2 DIN (4 pixels)
-PB4/MISO -> 100R -> 74AHCT125 3A/3Y -> 330R -> WS3 DIN (8 pixels)
-PB5/MOSI -> 100R -> 74AHCT125 4A/4Y -> 330R -> WS4 DIN (8 pixels)
+PF11/A1  -> 100R -> 74AHCT125 3A/3Y -> 330R -> WS3 DIN (8 pixels)
+PF12/A3  -> 100R -> 74AHCT125 4A/4Y -> 330R -> WS4 DIN (8 pixels)
 ```
 
 WS1、WS2、WS3、WS4 的顺序是固件输出组 0、1、2、3，固定为 **4 / 4 / 8 / 8**，
@@ -33,8 +33,15 @@ AHCT 输入；每个 5 V AHCT 输出再经 330 Ω 接到对应的 WS DIN。AHCT 
 STM32 的 3.3 V 高电平，输出只朝像素端驱动。
 
 **绝不允许 5 V 逻辑反馈到 STM32 引脚。** 禁止将 AHCT 输出、WS2812 DOUT 或其他 5 V
-源直接接至 PA0、PB3、PB4 或 PB5；禁止使用 BSS138、双向 MOSFET 或 I2C 用自动双向
+源直接接至 PA0、PB3、PF11 或 PF12；禁止使用 BSS138、双向 MOSFET 或 I2C 用自动双向
 电平转换模块。
+
+## SPI6 IMU 接线
+
+J6 的 SPI 引脚由 SPI6 独占：PG13/SCK、PB5/MOSI、PB4/MISO。PF13/A5 作为软件控制的
+低有效 CS，PC4/A2 作为上升沿外部中断输入。IMU 必须使用 3.3 V 逻辑并与 Wio 共地；
+当前总线初始化为 SPI mode 3、8 bit、MSB first，约 8.59 MHz。若具体 IMU 的最高频率、
+SPI mode 或中断极性不同，应在接入其寄存器驱动时调整。
 
 ## 供电与保护
 
@@ -77,7 +84,7 @@ PWM/DMA 传输对每个输出组独立发送 GRB/MSB 数据，并在每帧后附
    100 µF 电容已安装。
 2. INAV、Wio、74AHCT125 与 WS1--WS4 共地，动力回路大电流不经过信号地细线。
 3. USART3 未连接 ELRS 接收机，PD8/PD9 无其他外设占用。
-4. PA0/PB3/PB4/PB5 各自按上图通过 100 Ω、5 V 74AHCT125 通道和 330 Ω 接到对应 DIN；
+4. PA0/PB3/PF11/PF12 各自按上图通过 100 Ω、5 V 74AHCT125 通道和 330 Ω 接到对应 DIN；
    四个 OE 均为低，100 nF 去耦正确，且无 5 V 数据反灌到 MCU。
 5. 已核对 WS1=4、WS2=4、WS3=8、WS4=8，未把任何组串接。
 6. `APP_BATTERY_CELL_COUNT` 已设置为实车 `2..6` S；默认 `0` 不产生低电告警。

@@ -1,9 +1,9 @@
 #include "tim.h"
 
 TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim24;
 DMA_HandleTypeDef hdma_tim2_up;
-DMA_HandleTypeDef hdma_tim3_up;
+DMA_HandleTypeDef hdma_tim24_up;
 
 static void ws2812_timer_fail_safe(void) __attribute__((noreturn));
 
@@ -13,16 +13,19 @@ static void ws2812_timer_fail_safe(void)
 
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
-                    GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Pin = GPIO_PIN_0;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
   Error_Handler();
   for (;;) {}
 }
@@ -108,9 +111,9 @@ void MX_TIM2_Init(void)
   MX_WS2812_TIM_Init(&htim2, TIM2);
 }
 
-void MX_TIM3_Init(void)
+void MX_TIM24_Init(void)
 {
-  MX_WS2812_TIM_Init(&htim3, TIM3);
+  MX_WS2812_TIM_Init(&htim24, TIM24);
 }
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *timHandle)
@@ -119,6 +122,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *timHandle)
 
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -134,11 +138,11 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *timHandle)
     GPIO_InitStruct.Pin = GPIO_PIN_3;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
   }
-  else if (timHandle->Instance == TIM3)
+  else if (timHandle->Instance == TIM24)
   {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4 | GPIO_PIN_5, GPIO_PIN_RESET);
-    GPIO_InitStruct.Pin = GPIO_PIN_4 | GPIO_PIN_5;
-    GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+    GPIO_InitStruct.Alternate = GPIO_AF14_TIM24;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
   }
 }

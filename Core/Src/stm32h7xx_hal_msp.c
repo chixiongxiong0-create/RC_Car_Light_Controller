@@ -33,7 +33,7 @@
 /* External functions --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_spi1_tx;
 extern DMA_HandleTypeDef hdma_tim2_up;
-extern DMA_HandleTypeDef hdma_tim3_up;
+extern DMA_HandleTypeDef hdma_tim24_up;
 
 static void ws2812_dma_fail_safe(void) __attribute__((noreturn));
 
@@ -43,16 +43,19 @@ static void ws2812_dma_fail_safe(void)
 
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
-                    GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
   gpio.Mode = GPIO_MODE_OUTPUT_PP;
   gpio.Pull = GPIO_NOPULL;
   gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   gpio.Pin = GPIO_PIN_0;
   HAL_GPIO_Init(GPIOA, &gpio);
-  gpio.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
+  gpio.Pin = GPIO_PIN_3;
   HAL_GPIO_Init(GPIOB, &gpio);
+  gpio.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+  HAL_GPIO_Init(GPIOF, &gpio);
   Error_Handler();
   for (;;) {}
 }
@@ -154,6 +157,39 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 		HAL_NVIC_EnableIRQ(SPI1_IRQn);
 #endif
 	  }
+      else if (hspi->Instance == SPI6)
+      {
+        __HAL_RCC_SPI6_CLK_ENABLE();
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+        __HAL_RCC_GPIOC_CLK_ENABLE();
+        __HAL_RCC_GPIOF_CLK_ENABLE();
+        __HAL_RCC_GPIOG_CLK_ENABLE();
+
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_13, GPIO_PIN_SET);
+        GPIO_InitStruct.Pin = GPIO_PIN_13;
+        GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+        HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_4 | GPIO_PIN_5;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = GPIO_AF8_SPI6;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_13;
+        GPIO_InitStruct.Alternate = GPIO_AF5_SPI6;
+        HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_4;
+        GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+        HAL_NVIC_SetPriority(EXTI4_IRQn, 6, 0);
+        HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+      }
 }
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
@@ -167,12 +203,12 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
     hdma->Instance = DMA1_Stream2;
     hdma->Init.Request = DMA_REQUEST_TIM2_UP;
   }
-  else if (htim->Instance == TIM3)
+  else if (htim->Instance == TIM24)
   {
-    __HAL_RCC_TIM3_CLK_ENABLE();
-    hdma = &hdma_tim3_up;
+    __HAL_RCC_TIM24_CLK_ENABLE();
+    hdma = &hdma_tim24_up;
     hdma->Instance = DMA1_Stream3;
-    hdma->Init.Request = DMA_REQUEST_TIM3_UP;
+    hdma->Init.Request = DMA_REQUEST_TIM24_UP;
   }
   else
   {
@@ -215,10 +251,10 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef *htim)
     HAL_DMA_DeInit(&hdma_tim2_up);
     HAL_NVIC_DisableIRQ(DMA1_Stream2_IRQn);
   }
-  else if (htim->Instance == TIM3)
+  else if (htim->Instance == TIM24)
   {
-    __HAL_RCC_TIM3_CLK_DISABLE();
-    HAL_DMA_DeInit(&hdma_tim3_up);
+    __HAL_RCC_TIM24_CLK_DISABLE();
+    HAL_DMA_DeInit(&hdma_tim24_up);
     HAL_NVIC_DisableIRQ(DMA1_Stream3_IRQn);
   }
 }
