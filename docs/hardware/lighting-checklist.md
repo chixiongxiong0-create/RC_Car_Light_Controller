@@ -47,14 +47,21 @@ series resistors; the 330 ohm resistors are AHCT-output-to-DIN series resistors.
 
 Power pixels from a fused 5 V / 3 A BEC and share its ground with Wio, INAV, and the
 vehicle. Put protected input bulk capacitance on the LED branch; an optional 100 uF
-capacitor may be fitted at each remote group. The 1 A firmware current budget covers
+capacitor may be fitted at each remote group. The 850 mA estimated-current firmware budget covers
 all 24 pixels, but does not replace BEC, fuse, wire, capacitor, TVS, or current-limit
 protection. No 5 V source, AHCT output, or WS2812 DOUT may feed back into PA0, PB3,
 PF11, or PF12.
 
 ## Light behavior and controls
 
-Rear pixels run dim red with a healthy real MSP link. A forward-to-neutral/reverse deceleration infers braking and holds all four bright red for at least 600 ms. After that hold, reverse makes the inner pair white while the outer pair retain running red. Turn input below/above the left/right threshold blinks the selected pair at a 666 ms period (333 ms on); in reverse, the inner reverse pixel remains white while its outer pixel can blink amber. Board-fault, low-battery, and link-loss safety indications take priority over decorative roof output; a previously healthy lost link uses a low-current amber double flash when frames continue to be rendered.
+The two four-pixel rear groups are assigned **group 0 = vehicle left** and **group 1 = vehicle right**. Both have the same physical LED ID order despite the right lens being shape-mirrored:
+
+```text
+      1  2
+      4  3
+```
+
+With a healthy MSP link, all rear pixels retain a red 40/255 base while a brighter red head and trailing pixel orbit `1 -> 2 -> 3 -> 4` every 480 ms, identically on both sides. Inferred braking still holds at least 600 ms: all eight pixels remain bright red, with two short 200/150 red pulses before steady 200 red. Reverse keeps IDs 2 and 3 white on each side at 160/255, with a short 200/255 white peak every 800 ms; IDs 1 and 4 stay red. Steering below/above the left/right threshold triggers amber **immediately on the matching vehicle side**: IDs 1, then 1-2, then 1-2-3, then all four light in the first 333 ms of a 666 ms cycle. Returning to center or changing direction rearms the sequence. The opposite side keeps its running, brake, or reverse display. During reverse, white IDs 2 and 3 stay white and only IDs 1 and 4 can turn amber; during braking, amber overrides the corresponding side's red pulse. This is steering-derived indication, not a separate turn-signal switch. Board-fault, low-battery, and link-loss warnings keep priority over these effects; a previously healthy lost link uses a low-current amber double flash.
 
 The AUX8 mode order is:
 
@@ -64,10 +71,14 @@ The AUX8 mode order is:
 4. breathing amber
 5. moving comet
 6. rainbow chase
-7. police red/blue demonstration
+7. vehicle-linked 8-pixel strips (drive sync)
 8. battery/status visualization
 
-AUX8 has hysteresis between mode bands. AUX9 is continuous: it controls brightness in static modes and animation speed (with a conservative brightness ceiling) in animated modes.
+AUX8 has hysteresis between mode bands. The seventh band is centered at AUX8=+0.625 (normalized, approximately RC 1813 us). In that band, AUX9 controls the overall strip brightness from off to full, while throttle and steering drive the animation. In other modes AUX9 retains its previous brightness/speed behavior. See [rectangular-strip-effects-proposal.md](rectangular-strip-effects-proposal.md) for the pixel mapping and effects.
+
+### Thick-lens brightness profile
+
+The rear running red base/head/trail levels are 40/120/70. Brake red alternates 200 and 150 before settling at 200; reverse white is 160 with a brief 200 peak; turn amber uses R=200, G=70. Static roof modes reach up to 200/255 on their leading channel at maximum AUX9 while retaining each mode's color ratios. Animated roof modes keep their existing color levels and use AUX9 for speed. The 24-pixel frame passes through an **850 mA estimated-current software limiter**, leaving 150 mA of nominal margin under the earlier 1 A estimate. This estimate assumes 20 mA per full-scale color channel and excludes LED idle current and component variation, so it is not a physical 1 A guarantee. These are PWM channel values, not guaranteed visible-brightness percentages. Compare the assembled lens against the uncovered LEDs and measure the LED supply voltage, current, and temperature before considering any higher current budget.
 
 ## Final vehicle confirmation record
 
@@ -78,8 +89,8 @@ AUX8 has hysteresis between mode bands. AUX9 is continuous: it controls brightne
 | RC ordering | AETR followed by AUX1; AUX6..AUX9 are indices 9..12 | correct the MSP channel mapping |
 | Throttle polarity | negative is reverse | correct throttle interpretation |
 | Steering polarity | negative is left | correct steering interpretation |
-| WS1 physical identity/order | group 0; 4 pixels | PENDING — record the installed left/right identity and correct the logical mapping if needed |
-| WS2 physical identity/order | group 1; 4 pixels | PENDING — record the installed left/right identity and correct the logical mapping if needed |
+| WS1 physical identity/order | group 0 = vehicle left; IDs 1-2 top, 4-3 bottom | PENDING — confirm connector identity and physical order |
+| WS2 physical identity/order | group 1 = vehicle right; same ID order, lens shape mirrored | PENDING — confirm connector identity and physical order |
 | WS3 physical identity/order | group 2; 8 pixels | PENDING — record the installed location and DIN direction |
 | WS4 physical identity/order | group 3; 8 pixels | PENDING — record the installed location and DIN direction |
 | Total pixels | WS1/WS2/WS3/WS4 = 4/4/8/8 (24 total) | PENDING — correct hardware before any permanent installation |
@@ -96,7 +107,7 @@ AUX8 has hysteresis between mode bands. AUX9 is continuous: it controls brightne
 5. Connect WS1 only, then WS2, WS3, and WS4 one at a time. Verify each DIN identity,
    left/right identity where applicable, color/order, reset low, and safe-low behavior; record every result as PENDING until it is measured.
 6. Add all four groups, confirm all 74AHCT125 OE pins are low, the 100 nF decoupling,
-   protected input bulk capacitance, optional remote 100 uF capacitors if fitted, total 4/4/8/8 count, and 1 A current budget.
+   protected input bulk capacitance, optional remote 100 uF capacitors if fitted, total 4/4/8/8 count, and 850 mA estimated-current budget; measure actual supply current.
 7. With lamps still managed by a current-limited setup, verify AUX6-AUX9 mapping and all eight AUX8 ranges.
 8. Test stale/link-loss behavior and confirm both 12 V outputs turn off.
 9. Only after these checks pass may the vehicle battery and permanent lamps be connected.
