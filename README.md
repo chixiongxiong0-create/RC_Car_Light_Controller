@@ -1,86 +1,59 @@
 # Wio Lite AI RC Crawler UI
 
-## Crawler lighting hardware acceptance
+Wio Lite AI（STM32H725）攀爬车车壳装饰 UI 与灯光固件。它通过独立 UART 向 INAV 查询 MSP 状态，在 320×240 横屏上呈现硬派越野仪表，并根据车辆状态驱动前灯、车顶灯和四组独立 WS2812。UI 板不参与 ELRS/INAV 的遥控或动力控制链路。
 
-The MSP-controlled lighting firmware has completed software verification, but vehicle acceptance remains pending. Do not connect permanent lamps or claim physical behavior until the safe bench sequence in [the lighting checklist](docs/hardware/lighting-checklist.md) is complete. It records the AUX6-AUX9 map, external MOSFET and WS2812 wiring, power protection, required real-vehicle confirmations, and the blank-board two-image flashing requirement: `boot_stub/wio_ai_boot_stub.hex` plus `build_seed/wio_ai.hex`.
+## 功能一览
 
-Wio Lite AI（STM32H725）车壳装饰 UI 固件。它从 INAV 的独立 UART 以只读 MSP
-获取车辆状态，驱动 320×240 横屏 UI，并通过 SPI3 DMA 驱动 10～30 颗 WS2812。
+- **三种横屏画面**：仪表页显示油门、转向、前进/倒车、电压、姿态、GPS 卫星数和链路状态；表情页随车辆状态变化；展示页播放越野主题动态画面。页面切换带过渡动画。
+- **实时 MSP 状态**：从专用 USART3（115200，8N1）轮询 RC、姿态、电压、GPS 和飞控状态。这里的“只读”指只查询状态、不向飞控下发控制命令；物理接线仍需要交叉连接 TX/RX 并共地。
+- **动态尾灯**：左右各 4 颗 WS2812，正常行驶有红色追逐效果；根据 RC1 转向和 RC3 油门推断转向、刹车、倒车状态，显示对应的琥珀色流水、红色刹车和白色倒车效果。刹车是依据油门变化推断，并非读取独立刹车传感器。
+- **双侧车顶灯条**：左右各 8 颗 WS2812，可选择关闭、常亮白、暖色拖尾、琥珀呼吸、彗星、彩虹追逐、车辆联动和电池/状态八种模式；车辆联动模式随油门、转向、刹车变化。AUX9 调节效果参数。
+- **前灯与车顶射灯**：AUX6、AUX7 分别控制两路外置 12 V 灯的 MOSFET 开关。当前 GPIO 实现为开/关控制，尚非 PWM 无级调光。
+- **独立灯组输出**：4 路、共 24 颗 WS2812（4/4/8/8），使用 **TIM2/TIM24 PWM + DMA-burst** 输出，不再使用旧版 SPI3 单链 DMA 方案。各组可以播放不同动画；3.3 V 信号需经 5 V 逻辑电平转换后接灯带。
+- **演示与诊断**：无真实 MSP 数据时可显示带 `DEMO` 标识的演示画面；演示数据不会点亮实体灯。诊断页可查看 MSP age、UART 溢出、帧丢失、循环耗时和估算 LED 电流。链路丢失、低电量和故障有优先级更高的提示与保护逻辑。
 
-## 文档
+## 控制方式
 
-- [总体设计](docs/superpowers/specs/2026-07-17-rc-crawler-decoration-ui-design.md)
-- [实施计划](docs/superpowers/plans/2026-07-17-rc-crawler-decoration-ui-implementation.md)
-- [接线与供电](docs/hardware/wiring.md)
-- [INAV MSP 配置](docs/hardware/inav-msp-setup.md)
-- [硬件验收记录](docs/hardware/acceptance-results.md)
+默认通道顺序为 AETR + AUX；灯光控制需要完整的 13 通道 `MSP_RC` 数据。飞控通道映射如与此不同，应先核对后再上车。
 
-硬件验收文档中的 `PENDING` 项必须在真实车辆上完成，不可由主机测试或编译结果代替。
+| 输入 | 当前功能 |
+| --- | --- |
+| RC1 / RC3 | 转向与油门，用于推断尾灯和车辆联动灯效 |
+| AUX6 / AUX7 | 前灯 / 车顶 12 V 灯开关 |
+| AUX8 | 选择车顶灯条的 8 种模式 |
+| AUX9 | 调整灯效亮度或动画速度；车辆联动模式下控制整体亮度 |
+| 板载 USER1 | 短按切换页面，5 秒以上切换诊断页；若 AUX 页面通道已接管，短按不覆盖其选择。2～5 秒的亮度切换目前仅预留请求，尚未接到实际背光控制 |
 
-## 配置
+固件目前会探测触摸设备并在诊断页显示结果，但尚未把触摸事件接入页面切换。详细阈值、灯珠 ID 和效果优先级见[灯光验收清单](docs/hardware/lighting-checklist.md)。
 
-烧录前检查 `App/Inc/app_config.h`：
+## 硬件连接与安全
 
-- `APP_BATTERY_CELL_COUNT` 默认为 `0`（未知），此时低电量表达和告警被禁用。
-  实车必须设置为实际的 `2..6` S。
-- `APP_LED_PIXEL_COUNT` 设置实际灯珠总数，范围为 `4..30`；前四颗为固定后部灯组，`APP_REAR_PIXEL_COUNT` 必须保持为 `4`。
+| 功能 | Wio 引脚 | 说明 |
+| --- | --- | --- |
+| MSP UART | PD8 / USART3_TX，PD9 / USART3_RX | INAV TX → PD9，INAV RX ← PD8；3.3 V、共地 |
+| 前灯 / 车顶射灯 | PF3 / D10，PE10 / D11 | 驱动外置低端 MOSFET，不直接给 12 V 灯供电 |
+| 左 / 右尾灯 | PA0 / D9，PB3 / D12 | 两组各 4 颗 WS2812 |
+| 左 / 右车顶灯条 | PF11 / A1，PF12 / A3 | 两组各 8 颗 WS2812 |
 
-## 构建
+四路 WS2812 是**各自独立的 DIN**，不是首尾相接的单条灯带；右尾灯外形镜像，但灯珠 ID 顺序与左侧相同。建议按[接线文档](docs/hardware/wiring.md)使用 74AHCT125 电平转换、独立受保护的 5 V 电源、保险丝和共地。软件的约 850 mA 是**估算限流**，不能替代电源、电流和温度的实测保护。
 
-需要 GNU Make、GNU Arm Embedded Toolchain、CMake、Ninja 和 CTest。所有命令均从
-仓库根目录运行，不依赖某台电脑上的绝对路径。
+当前已完成软件验证，但实车灯光、线束与长期运行验收仍需按[硬件验收记录](docs/hardware/acceptance-results.md)和[灯光验收清单](docs/hardware/lighting-checklist.md)逐项确认。首次通电请断开动力系统，并对 UI 板和灯带限流供电。
+
+## 构建与烧录
+
+需要 GNU Make、GNU Arm Embedded Toolchain；主机测试另需 CMake、Ninja 和 CTest。在仓库根目录构建：
 
 ```powershell
 make bsp_config_seedstudio=1 -j4
-```
-
-产物位于：
-
-```text
-build_seed/wio_ai.elf
-build_seed/wio_ai.bin
-build_seed/wio_ai.hex
-build_seed/wio_ai.map
-```
-
-应用固定使用 `STM32H725AEIX_PSRAM.ld`，向量表位于 `0x08020000`。sector 0 的稳定
-启动桩独立构建；它的固定入口会在每次启动时从 `0x08020000` 动态读取应用 MSP 和
-`Reset_Handler`，因此应用重链接后无需更新桩内地址：
-
-```powershell
 make -C boot_stub
 ```
 
-生成 `boot_stub/build/wio_ai_boot_stub.{elf,hex,bin,map}`。仓库还跟踪了经相同源码生成的
-`boot_stub/wio_ai_boot_stub.hex`，供烧录和 fresh build 比对。根 ARM CMake 构建也会同时
-生成应用和该启动桩，并在所有构建配置中使用相同的 `0x08020000` 应用布局：
+应用产物为 `build_seed/wio_ai.{elf,bin,hex,map}`；启动桩产物为 `boot_stub/build/wio_ai_boot_stub.{elf,bin,hex,map}`。首次烧录或 sector 0 已擦除时，需要分别写入：
 
-```powershell
-cmake -S . -B build-arm -G Ninja `
-  '-DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake' `
-  '-DCMAKE_BUILD_TYPE=Release'
-cmake --build build-arm
-```
+1. `boot_stub/wio_ai_boot_stub.hex` → `0x08000000`（sector 0 启动桩）。
+2. `build_seed/wio_ai.hex` → `0x08020000`（应用）。
 
-完成启动桩与应用 Make 构建后，可执行工件检查，验证两侧向量地址、动态跳转反汇编、当前应用
-入口未嵌入启动桩，以及 fresh/tracked HEX 记录一致：
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File scripts/inspect_boot_stub.ps1 `
-  -BootStubElf boot_stub/build/wio_ai_boot_stub.elf `
-  -BootStubBin boot_stub/build/wio_ai_boot_stub.bin `
-  -ApplicationElf build_seed/wio_ai.elf `
-  -BootStubHex boot_stub/build/wio_ai_boot_stub.hex `
-  -TrackedHex boot_stub/wio_ai_boot_stub.hex
-```
-
-清理并重建：
-
-```powershell
-make bsp_config_seedstudio=1 clean
-make bsp_config_seedstudio=1 -j4
-```
+HEX 自带写入地址；如使用 BIN，必须手工指定上述起始地址。只有读回确认稳定启动桩仍在时，后续才可只更新应用。写 sector 0 前先确认没有需要保留的 bootloader、校准数据或其他持久化数据；不要全片擦除，也不要把应用 BIN 写到 `0x08000000`。
 
 运行主机测试：
 
@@ -90,45 +63,14 @@ cmake --build build-host
 ctest --test-dir build-host --output-on-failure
 ```
 
-## 烧录
+`APP_BATTERY_CELL_COUNT` 在 `App/Inc/app_config.h` 中默认为 `0`（低电量告警禁用）；实车使用前应设为实际的 2～6 S 并重新编译。当前灯组数量固定为 4/4/8/8，旧的 `APP_LED_PIXEL_COUNT` 宏不是调整四路物理灯数的配置入口。
 
-可使用 STM32CubeProgrammer、STM32CubeIDE 或 J-Link，通过板载/外接调试器下载。优先使用
-Intel HEX，因为文件自带目标地址。完整可启动布局由两个工件组成：
+## 更多文档
 
-1. 将 `boot_stub/wio_ai_boot_stub.hex` 写入 sector 0；其向量表从 `0x08000000` 开始。
-2. 将 `build_seed/wio_ai.hex` 写入应用区；其向量表从 `0x08020000` 开始。
+- [INAV MSP 端口配置](docs/hardware/inav-msp-setup.md)
+- [硬件接线与供电](docs/hardware/wiring.md)
+- [灯光效果、通道映射与安全验收](docs/hardware/lighting-checklist.md)
+- [硬件验收记录](docs/hardware/acceptance-results.md)
+- [总体设计](docs/superpowers/specs/2026-07-17-rc-crawler-decoration-ui-design.md)
 
-**空白设备、sector 0 已擦除的设备，或仍装有旧式绝对跳转向量的设备，必须写入两者；只写
-应用 HEX 不会让空白设备启动。** 只有已读回确认稳定启动桩存在时，后续应用升级才可只写
-地址化应用 HEX。启动桩在运行时读取应用向量，因此未来 `Reset_Handler` 移动不需要重建或
-修改 sector 0 跳转地址。
-
-若工具只能写原始 BIN，`boot_stub/build/wio_ai_boot_stub.bin` 的起始地址必须是
-`0x08000000`，`build_seed/wio_ai.bin` 的起始地址必须是 `0x08020000`，不得互换。写启动桩
-通常需要擦除整个 128 KiB sector 0；执行前必须确认其中没有其他 bootloader、校准或持久化
-数据。不要执行全片擦除，也不要把应用 BIN 写到 `0x08000000`。首次上车前先断开动力系统，
-仅给 UI 板和灯带限流供电。
-
-### 2026-08-04 稳定启动桩硬件证据
-
-J-Link V8.18 已将稳定启动桩和 fresh 地址化应用分别写入并完成 `Verify O.K.`。sector 0
-读回向量为 `SP=0x24050000`、`reset=0x08000041`，固定代码从 `0x08000040` 动态读取应用
-向量；`0x08020000` 的应用向量读回为 `0x24050000 / 0x0805CD85`（后者包含 Thumb bit）。
-
-复位 3 秒后的探针值为 `PC=0x08023E88`、`IPSR=0`、`VTOR=0x08020000`；稍后的运行时
-探针值为 `PC=0x0805EE78`、`IPSR=0`、GPIOF `ODR=0x20`（PF5 高），且
-`CFSR=0`、`HFSR=0`。两次脚本最后均执行 `go`。
-
-这些证据仅确认稳定启动桩烧录/读回、复位进入 fresh 应用、短时运行和 PF5 高为 `PASS`。
-它们不构成连续或长时间运行证明；三页视觉、`USER1`、`DEMO` 徽标、实时 MSP 接管、
-60 秒动态观察和四小时浸泡仍为 `PENDING`。
-
-## GUI 工具
-
-仓库包含 `.project`、`.cproject`、`.mxproject` 和 `wio_ai.ioc`，可导入
-STM32CubeIDE 用于浏览、编辑、烧录和调试。正式构建仍以以上 Make 命令为准，因为
-CubeIDE managed build 不保证包含全部 `App/` 与 LVGL 源文件。
-
-CubeMX 中 IWDG 的 virtual pin 可能显示 Minor warning；IWDG 的实际初始化由
-`Core/Src/iwdg.c` 手工维护。不要未经差异审查直接从 CubeMX 重新生成代码，否则可能
-覆盖手写的看门狗、显示、MSP 和 WS2812 集成。
+仓库附带 STM32CubeIDE 工程文件，可用于浏览、调试和烧录；正式构建仍以上面的 Make 命令为准。CubeMX 重新生成代码前请先审查差异，以免覆盖显示、MSP、看门狗或灯光的手写集成。
