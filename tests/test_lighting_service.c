@@ -68,7 +68,7 @@ static void test_service_submits_one_complete_frame_per_tick(void)
 
     assert(capture.apply_calls == 1u);
     assert(capture.front_duty == 1000u);
-    assert(capture.roof_duty == 500u);
+    assert(capture.roof_duty == 1000u);
     assert(capture.calls == 1u);
     assert(capture.now_ms == 123u);
     assert(memcmp(&capture.frame, &service.frame.ws2812,

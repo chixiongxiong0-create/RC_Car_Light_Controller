@@ -20,7 +20,8 @@ static bool fake_read(uint8_t address, uint16_t reg, bool reg16,
     ++fake->calls;
     assert(timeout_ms == 5u);
     assert((address == 0x38u && (reg == 0xA3u || reg == 0xA8u) && !reg16) ||
-           ((address == 0x5Du || address == 0x14u) && reg == 0x8140u && reg16));
+           ((address == 0x5Du || address == 0x14u) && reg == 0x8140u && reg16) ||
+           (address == 0x48u && reg == 0xE0u && !reg16 && length == 2u));
     if (address != fake->hit_address) {
         return false;
     }
@@ -28,7 +29,10 @@ static bool fake_read(uint8_t address, uint16_t reg, bool reg16,
         data[0] = fake->chip_id;
     } else if (address == 0x38u && reg == 0xA8u) {
         data[0] = fake->vendor_id;
-    } else {
+      } else if (address == 0x48u) {
+          data[0] = 0u;
+          data[1] = 0u;
+      } else {
         memcpy(data, fake->gt_id, length);
     }
     return true;
@@ -96,17 +100,25 @@ static void test_ws2812_busy_drop_snapshot(void)
 static void test_touch_probe(void)
 {
     ProbeFake fake = {.hit_address = 0x38u, .chip_id = 0x54u, .vendor_id = 0x11u};
+    TouchProbeResult result = touch_probe_detect(fake_read, &fake);
+    assert(result.controller == TOUCH_FT_FAMILY && result.address == 0x38u);
     assert(touch_probe_identify(fake_read, &fake) == TOUCH_FT_FAMILY);
-    assert(fake.calls == 2u);
-    fake = (ProbeFake){.hit_address = 0x38u, .chip_id = 0x55u, .vendor_id = 0x11u};
-    assert(touch_probe_identify(fake_read, &fake) == TOUCH_NONE);
     assert(fake.calls == 4u);
+      fake = (ProbeFake){.hit_address = 0x38u, .chip_id = 0x55u, .vendor_id = 0x11u};
+      assert(touch_probe_identify(fake_read, &fake) == TOUCH_NONE);
+      assert(fake.calls == 5u);
     fake = (ProbeFake){.hit_address = 0x5Du, .gt_id = {'9','1','1','0'}};
     assert(touch_probe_identify(fake_read, &fake) == TOUCH_GT_FAMILY);
     assert(fake.calls == 2u);
-    fake = (ProbeFake){0};
-    assert(touch_probe_identify(fake_read, &fake) == TOUCH_NONE);
-    assert(fake.calls == 3u);
+    fake = (ProbeFake){.hit_address = 0x14u, .gt_id = {'9','1','1','0'}};
+    result = touch_probe_detect(fake_read, &fake);
+    assert(result.controller == TOUCH_GT_FAMILY && result.address == 0x14u);
+      fake = (ProbeFake){0};
+      assert(touch_probe_identify(fake_read, &fake) == TOUCH_NONE);
+      assert(fake.calls == 4u);
+      fake = (ProbeFake){.hit_address = 0x48u};
+      result = touch_probe_detect(fake_read, &fake);
+      assert(result.controller == TOUCH_RESISTIVE_FAMILY && result.address == 0x48u);
 }
 
 void test_diagnostics(void)

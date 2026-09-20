@@ -29,6 +29,7 @@ add_executable(unit_tests
     test_lighting_output_port.c
     test_ws2812_encoder.c
     test_diagnostics.c
+    test_touch_panel.c
     ../App/Src/app_time.c
     ../App/Src/msp/msp_codec.c
     ../App/Src/msp/msp_client.c
@@ -49,6 +50,7 @@ add_executable(unit_tests
     ../App/Src/platform/ws2812_port.c
     ../App/Src/diagnostics.c
     ../App/Src/platform/touch_probe.c
+    ../App/Src/platform/touch_panel.c
 )
 target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
 target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1 WS2812_HOST_TEST=1 TOUCH_PROBE_HOST_TEST=1 DIAGNOSTICS_HOST_TEST=1 LIGHTING_OUTPUT_PORT_HOST_TEST=1)

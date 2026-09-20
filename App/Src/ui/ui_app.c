@@ -20,6 +20,22 @@ static lv_obj_t *diagnostics_label;
 static bool diagnostics_visible;
 static uint32_t diagnostics_updated_ms;
 
+static void on_page_gesture(lv_event_t *event)
+{
+    (void)event;
+    lv_indev_t *indev = lv_indev_active();
+    if (indev == NULL) return;
+    const lv_dir_t direction = lv_indev_get_gesture_dir(indev);
+    if (direction == LV_DIR_LEFT) {
+        input_manager_on_swipe(UI_SWIPE_LEFT);
+    } else if (direction == LV_DIR_RIGHT) {
+        input_manager_on_swipe(UI_SWIPE_RIGHT);
+    } else {
+        return;
+    }
+    lv_indev_wait_release(indev);
+}
+
 static lv_obj_t *page_object(UiPage page)
 {
     if (page == UI_PAGE_FACE) {
@@ -52,6 +68,11 @@ void ui_app_init(void)
     dashboard = screen_dashboard_create();
     face = screen_face_create();
     showcase = screen_showcase_create();
+    lv_obj_t *screens[] = {dashboard, face, showcase};
+    for (size_t i = 0u; i < 3u; ++i) {
+        lv_obj_add_flag(screens[i], LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(screens[i], on_page_gesture, LV_EVENT_GESTURE, NULL);
+    }
     page_transition_init(&transition, input_manager_page(), 0u);
     lv_screen_load(page_object(page_transition_visible_page(&transition)));
 

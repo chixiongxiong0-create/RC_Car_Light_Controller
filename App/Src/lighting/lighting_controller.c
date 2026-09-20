@@ -22,6 +22,12 @@ static uint16_t normalized_to_duty(float value)
     return (uint16_t)(unit * 1000.0f + 0.5f);
 }
 
+static void update_external_lights(LightingFrame *frame, float aux6)
+{
+    frame->front_duty = aux6 >= -0.2f ? 1000u : 0u;
+    frame->roof_spot_duty = aux6 > 0.8f ? 1000u : 0u;
+}
+
 static uint8_t normalized_to_level(float value)
 {
     const float unit = (clamp_normalized(value) + 1.0f) * 0.5f;
@@ -391,8 +397,7 @@ void lighting_controller_render(LightingController *controller, uint32_t now_ms,
         return;
     }
     controller->has_seen_valid_lighting_rc = true;
-    frame->front_duty = normalized_to_duty(state->aux6);
-    frame->roof_spot_duty = normalized_to_duty(state->aux7);
+    update_external_lights(frame, state->aux6);
     update_roof_mode(controller, state->aux8);
     update_brake(controller, now_ms, state->throttle);
     update_turn(controller, now_ms, state->steering);
