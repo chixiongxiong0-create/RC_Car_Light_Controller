@@ -30,4 +30,4 @@ ctest --test-dir build-host --output-on-failure
 
 候选引脚见 [pin-map.md](pin-map.md)。公开的 MB1189 原理图未覆盖 B-01，候选接线仍需按实物和对应版次核实。WS2812 数据须经过 74AHCT125 等 5 V 电平转换，灯与 LED 分别使用受保护的独立 12 V / 5 V 电源；板上 GPIO 只驱动 MOSFET 门极，不能直接连接 12 V。按 [acceptance.md](validation/acceptance.md) 的顺序验证后再装车。
 
-固件当前完成编译和主机逻辑测试；显示、触摸、MSP、WS2812 时序、灯开关与整车供电还没有实物验收。
+固件已在连接的 MB1189 B-01 上烧录并校验，运行约 29–30 FPS；ST-LINK 读回了表情、总览和详细诊断三张 800×480 画面。屏幕实际观感、触摸手势、外接 MSP、WS2812 DIN 波形、12 V 灯开关与整车供电仍需实物验收。
