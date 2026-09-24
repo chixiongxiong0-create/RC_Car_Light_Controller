@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | 主机逻辑测试 | PASS | 15/15 CTest 通过，含双链 8/16 灯珠顺序。 |
 | F469 固件构建 | PASS | GNU Arm 工具链生成 ELF/HEX/BIN；FLASH 约 605 KB，内部 RAM 静态占用约 172 KB。 |
-| ST-LINK 单板连接与固件运行 | PASS | 识别 STM32F469、2 MB Flash、3.04 V；烧录后校验成功；运行计时递增，诊断健康 OK，界面刷新约 29–30 FPS。原始 2 MB Flash 已备份在 `E:/workspace/fpv/hardware_backups/mb1189-b01-before-f469-port-2026-09-24.bin`。 |
+| ST-LINK 单板连接与固件运行 | PASS | 识别 STM32F469、2 MB Flash、3.04 V；烧录后校验成功；运行计时递增，SystemCoreClock 为 180 MHz，诊断健康 OK，界面刷新约 29–30 FPS。原始 2 MB Flash 已备份在 `E:/workspace/fpv/hardware_backups/mb1189-b01-before-f469-port-2026-09-24.bin`。 |
 | 实板 SDRAM 画面读回 | PASS | 经 ST-LINK 读回 800×480 帧缓冲，已检查表情、总览、详细诊断三张图；见本目录 PNG。画面采集期间的局部撕裂不代表屏幕实物问题。 |
-| WS2812 定时器 DMA 软件状态 | PASS | 板上读数：TIM3 更新 DMA 完成计数持续增加，错误计数 0；DIN 波形仍待示波器确认。 |
+| WS2812 定时器 DMA 软件状态 | PASS | 板上读数：TIM3 ARR=112，90 MHz 计时对应约 796.5 kHz；CCR 目标值 32/63 tick（约 356/700 ns）；DMA 完成计数持续增加，错误计数 0。DIN 波形仍待示波器确认。 |
 | B-01 晶振与候选引脚 | PENDING | 核对 8/25 MHz 晶振与 CN7/CN12 信号实际连通，排除板上外设占用。 |
 | 单板 800×480 显示观感 | PENDING | 请观察两屏有无剪裁、闪烁、花屏；记录供电电流。 |
 | 触摸与 USER 回退 | PENDING | 点按两个主标签；两页内左右滑动；测试触摸不可用时 USER 按钮。 |
