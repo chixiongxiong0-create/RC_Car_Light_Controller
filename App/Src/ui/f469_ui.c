@@ -1,5 +1,7 @@
 #include "ui/f469_ui.h"
 
+#include <stdio.h>
+#include <string.h>
 #include "lvgl.h"
 #include "ui/f469_face.h"
 #include "ui/f469_info.h"
@@ -14,6 +16,13 @@ static lv_obj_t *info_tab;
 static lv_obj_t *link_label;
 static lv_obj_t *battery_label;
 static lv_obj_t *demo_label;
+static int previous_main = -1;
+static int previous_demo = -1;
+
+static void set_text_if_changed(lv_obj_t *obj, const char *text)
+{
+    if (strcmp(lv_label_get_text(obj), text) != 0) lv_label_set_text(obj, text);
+}
 
 static void on_tab(lv_event_t *event)
 {
@@ -107,28 +116,38 @@ void f469_ui_tick(uint32_t now_ms, const VehicleState *state,
     if (face_area == NULL) return;
     two_screen_tick(&navigation, now_ms, state, low_battery);
     const TwoScreenView view = two_screen_view(&navigation);
-    if (view.main == MAIN_FACE) {
-        lv_obj_remove_flag(face_area, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(info_area, LV_OBJ_FLAG_HIDDEN);
-    } else {
-        lv_obj_add_flag(face_area, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(info_area, LV_OBJ_FLAG_HIDDEN);
+    if ((int)view.main != previous_main) {
+        if (view.main == MAIN_FACE) {
+            lv_obj_remove_flag(face_area, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(info_area, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(face_area, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(info_area, LV_OBJ_FLAG_HIDDEN);
+        }
+        lv_obj_set_style_bg_color(face_tab, view.main == MAIN_FACE ?
+                                  UI_COLOR_YELLOW : UI_COLOR_PANEL, 0);
+        lv_obj_set_style_bg_color(info_tab, view.main == MAIN_INFO ?
+                                  UI_COLOR_YELLOW : UI_COLOR_PANEL, 0);
+        previous_main = view.main;
     }
-    lv_obj_set_style_bg_color(face_tab, view.main == MAIN_FACE ?
-                              UI_COLOR_YELLOW : UI_COLOR_PANEL, 0);
-    lv_obj_set_style_bg_color(info_tab, view.main == MAIN_INFO ?
-                              UI_COLOR_YELLOW : UI_COLOR_PANEL, 0);
-    lv_label_set_text(link_label, state == NULL ? "START" :
+    set_text_if_changed(link_label, state == NULL ? "START" :
         state->link == LINK_OK ? "LINK OK" :
         state->link == LINK_STALE ? "STALE" :
         state->link == LINK_LOST ? "LINK LOST" : "START");
+    char battery_text[16];
     if (state != NULL && state->battery_valid && state->link == LINK_OK) {
-        lv_label_set_text_fmt(battery_label, "%.1f V", (double)state->battery_v);
+        (void)snprintf(battery_text, sizeof battery_text, "%.1f V", (double)state->battery_v);
     } else {
-        lv_label_set_text(battery_label, "--.- V");
+        (void)snprintf(battery_text, sizeof battery_text, "--.- V");
     }
-    if (demo) lv_obj_remove_flag(demo_label, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(demo_label, LV_OBJ_FLAG_HIDDEN);
-    f469_face_update(now_ms, state, view.mood, low_battery, view.manual);
-    f469_info_update(now_ms, state, diagnostics, view.info);
+    set_text_if_changed(battery_label, battery_text);
+    if ((int)demo != previous_demo) {
+        if (demo) lv_obj_remove_flag(demo_label, LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_add_flag(demo_label, LV_OBJ_FLAG_HIDDEN);
+        previous_demo = demo;
+    }
+    if (view.main == MAIN_FACE)
+        f469_face_update(now_ms, state, view.mood, low_battery, view.manual);
+    else
+        f469_info_update(now_ms, state, diagnostics, view.info);
 }

@@ -6,6 +6,11 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 enable_testing()
 
+add_executable(f469_chain_order_tests test_f469_chain_order.c)
+target_include_directories(f469_chain_order_tests PRIVATE
+    ../boards/stm32f469i_disco/ports ../App/Inc)
+add_test(NAME f469_chain_order_tests COMMAND f469_chain_order_tests)
+
 add_executable(two_screen_tests
     test_two_screen_controller.c
     ../App/Src/ui/two_screen_controller.c

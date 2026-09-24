@@ -1,5 +1,9 @@
 # Wio Lite AI RC Crawler UI
 
+## STM32F469I-DISCO 新版
+
+已新增 [STM32F469I-DISCO 界面与灯光固件](boards/stm32f469i_disco/README.md)，用于替换本项目的 Wio 显示与灯光板。它只有表情、信息两个触摸主界面，保留 MSP、两路 12 V 灯控制和两条 WS2812 数据链。下面内容为原 Wio 版本说明。MB1189 B-01 的引脚和实车功能仍需按 [上板验收记录](boards/stm32f469i_disco/validation/acceptance.md) 检验。
+
 Wio Lite AI（STM32H725）攀爬车车壳装饰 UI 与灯光固件。它通过独立 UART 向 INAV 查询 MSP 状态，在 320×240 横屏上呈现硬派越野仪表，并根据车辆状态驱动前灯、车顶灯和四组独立 WS2812。UI 板不参与 ELRS/INAV 的遥控或动力控制链路。
 
 ## 功能一览

@@ -1,5 +1,7 @@
 #include "ui/f469_face.h"
 
+#include <stdio.h>
+#include <string.h>
 #include "ui/ui_theme.h"
 
 static lv_obj_t *left_eye;
@@ -10,6 +12,16 @@ static lv_obj_t *mouth;
 static lv_obj_t *mood_label;
 static lv_obj_t *mode_label;
 static lv_obj_t *voltage_label;
+static int previous_mood = -1;
+static int previous_low_battery = -1;
+static int32_t previous_eye_height = -1;
+static int32_t previous_shake = INT32_MIN;
+static int32_t previous_gaze = INT32_MIN;
+
+static void set_text_if_changed(lv_obj_t *obj, const char *text)
+{
+    if (strcmp(lv_label_get_text(obj), text) != 0) lv_label_set_text(obj, text);
+}
 
 static lv_obj_t *label(lv_obj_t *parent, const char *text, int32_t x, int32_t y,
                        const lv_font_t *font, lv_color_t color)
@@ -82,35 +94,55 @@ void f469_face_update(uint32_t now_ms, const VehicleState *state,
     static const char *const names[] = {
         "CALM", "FOCUSED", "REVERSE", "LOW POWER", "LINK LOST"
     };
-    lv_label_set_text(mood_label, names[(unsigned)mood <= FACE_LINK_LOST ?
-                                       (unsigned)mood : 0u]);
-    lv_label_set_text(mode_label, manual ? "MANUAL" : "AUTO");
+    set_text_if_changed(mood_label, names[(unsigned)mood <= FACE_LINK_LOST ?
+                                          (unsigned)mood : 0u]);
+    set_text_if_changed(mode_label, manual ? "MANUAL" : "AUTO");
     const FaceModel base = face_model_from_state(state, low_battery);
     const FaceMotionModel motion = face_motion_model(now_ms, base.aperture, mood);
     const int32_t eye_height = 170 - (motion.blink_closure * 150) / 100;
-    lv_obj_set_size(left_eye, 165, eye_height);
-    lv_obj_set_size(right_eye, 165, eye_height);
-    lv_obj_set_pos(left_eye, 190 + motion.shake_x, 120 + (170 - eye_height) / 2);
-    lv_obj_set_pos(right_eye, 445 + motion.shake_x, 120 + (170 - eye_height) / 2);
-    lv_obj_align(left_pupil, LV_ALIGN_CENTER, base.gaze_x, 0);
-    lv_obj_align(right_pupil, LV_ALIGN_CENTER, base.gaze_x, 0);
+    const bool geometry_changed = eye_height != previous_eye_height;
+    if (geometry_changed) {
+        lv_obj_set_size(left_eye, 165, eye_height);
+        lv_obj_set_size(right_eye, 165, eye_height);
+        previous_eye_height = eye_height;
+    }
+    if (geometry_changed || motion.shake_x != previous_shake) {
+        lv_obj_set_pos(left_eye, 190 + motion.shake_x, 120 + (170 - eye_height) / 2);
+        lv_obj_set_pos(right_eye, 445 + motion.shake_x, 120 + (170 - eye_height) / 2);
+        previous_shake = motion.shake_x;
+    }
+    if (base.gaze_x != previous_gaze) {
+        lv_obj_align(left_pupil, LV_ALIGN_CENTER, base.gaze_x, 0);
+        lv_obj_align(right_pupil, LV_ALIGN_CENTER, base.gaze_x, 0);
+        previous_gaze = base.gaze_x;
+    }
     const lv_color_t color = mood == FACE_LINK_LOST || mood == FACE_LOW_BATTERY ?
                              lv_color_hex(0xFF646C) :
                              mood == FACE_REVERSE ? lv_color_white() : UI_COLOR_YELLOW;
-    lv_obj_set_style_bg_color(left_pupil, color, 0);
-    lv_obj_set_style_bg_color(right_pupil, color, 0);
-    lv_obj_set_style_text_color(mood_label, color, 0);
+    if ((int)mood != previous_mood) {
+        lv_obj_set_style_bg_color(left_pupil, color, 0);
+        lv_obj_set_style_bg_color(right_pupil, color, 0);
+        lv_obj_set_style_text_color(mood_label, color, 0);
+    }
     const int32_t mouth_width = mood == FACE_FOCUSED ? 55 :
                                 mood == FACE_LINK_LOST ? 90 : 70;
     const int32_t mouth_height = mood == FACE_FOCUSED ? 32 : 10;
-    lv_obj_set_size(mouth, mouth_width, mouth_height);
-    lv_obj_set_pos(mouth, (800 - mouth_width) / 2, 337);
-    lv_obj_set_style_bg_color(mouth, color, 0);
-    if (state->battery_valid && state->link == LINK_OK) {
-        lv_label_set_text_fmt(voltage_label, "%.1fV", (double)state->battery_v);
-    } else {
-        lv_label_set_text(voltage_label, "--.-V");
+    if ((int)mood != previous_mood) {
+        lv_obj_set_size(mouth, mouth_width, mouth_height);
+        lv_obj_set_pos(mouth, (800 - mouth_width) / 2, 337);
+        lv_obj_set_style_bg_color(mouth, color, 0);
+        previous_mood = mood;
     }
-    lv_obj_set_style_text_color(voltage_label,
-        low_battery ? lv_color_hex(0xFF646C) : UI_COLOR_GREEN, 0);
+    char voltage[16];
+    if (state->battery_valid && state->link == LINK_OK) {
+        (void)snprintf(voltage, sizeof voltage, "%.1fV", (double)state->battery_v);
+    } else {
+        (void)snprintf(voltage, sizeof voltage, "--.-V");
+    }
+    set_text_if_changed(voltage_label, voltage);
+    if ((int)low_battery != previous_low_battery) {
+        lv_obj_set_style_text_color(voltage_label,
+            low_battery ? lv_color_hex(0xFF646C) : UI_COLOR_GREEN, 0);
+        previous_low_battery = low_battery;
+    }
 }

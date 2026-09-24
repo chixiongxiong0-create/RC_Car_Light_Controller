@@ -1,9 +1,10 @@
 # STM32F469I-DISCO external signals
 
-Reported board marking: **B-01**. ST's currently published MB1189 schematics
+Reported board marking: **MB1189 B-01**. ST's currently published MB1189 schematics
 list B-07, B-08, and C-01. The table below comes from UM1932 Rev 5 and is
 **provisional for B-01**. Do not connect vehicle wiring before confirming the
-full MB number and connector labels from a board photo and matching schematic.
+connector labels and signal continuity on the actual board. The default build
+uses the Discovery Rev B 8 MHz HSE setting, which also needs physical checking.
 
 | Signal | MCU alternate function | Connector | Conflict check |
 | --- | --- | --- | --- |

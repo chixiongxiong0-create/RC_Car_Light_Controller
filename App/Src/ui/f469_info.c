@@ -1,5 +1,8 @@
 #include "ui/f469_info.h"
 
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 #include "ui/overview_model.h"
 #include "ui/ui_theme.h"
 
@@ -9,6 +12,22 @@ static lv_obj_t *overview_page;
 static lv_obj_t *diagnostic_page;
 static lv_obj_t *overview_values[OVERVIEW_FIELDS];
 static lv_obj_t *diagnostic_values[DIAGNOSTIC_FIELDS];
+static int previous_page = -1;
+
+static void set_text_if_changed(lv_obj_t *obj, const char *text)
+{
+    if (strcmp(lv_label_get_text(obj), text) != 0) lv_label_set_text(obj, text);
+}
+
+static void set_fmt_if_changed(lv_obj_t *obj, const char *format, ...)
+{
+    char text[64];
+    va_list args;
+    va_start(args, format);
+    (void)vsnprintf(text, sizeof text, format, args);
+    va_end(args);
+    set_text_if_changed(obj, text);
+}
 
 static lv_obj_t *make_text(lv_obj_t *parent, const char *text, int32_t x,
                             int32_t y, const lv_font_t *font, lv_color_t color)
@@ -84,12 +103,15 @@ void f469_info_update(uint32_t now_ms, const VehicleState *state,
                        const DiagnosticsSnapshot *diag, InfoPage page)
 {
     if (overview_page == NULL) return;
-    if (page == INFO_DIAGNOSTICS) {
-        lv_obj_add_flag(overview_page, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(diagnostic_page, LV_OBJ_FLAG_HIDDEN);
-    } else {
-        lv_obj_add_flag(diagnostic_page, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(overview_page, LV_OBJ_FLAG_HIDDEN);
+    if ((int)page != previous_page) {
+        if (page == INFO_DIAGNOSTICS) {
+            lv_obj_add_flag(overview_page, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(diagnostic_page, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(diagnostic_page, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(overview_page, LV_OBJ_FLAG_HIDDEN);
+        }
+        previous_page = page;
     }
     OverviewModel model;
     overview_model_from_state(state, now_ms, &model);
@@ -98,20 +120,20 @@ void f469_info_update(uint32_t now_ms, const VehicleState *state,
         model.pitch, model.roll, model.gps, model.armed, model.link
     };
     for (unsigned i = 0; i < OVERVIEW_FIELDS; ++i) {
-        lv_label_set_text(overview_values[i], fields[i]);
+        set_text_if_changed(overview_values[i], fields[i]);
     }
     if (diag == NULL) return;
     static const char *const health_names[] = {"BOOT", "OK", "DEGRADED", "FAULT"};
-    lv_label_set_text(diagnostic_values[0],
+    set_text_if_changed(diagnostic_values[0],
         health_names[(unsigned)diag->state <= HEALTH_FAULT ? (unsigned)diag->state : 0u]);
-    lv_label_set_text_fmt(diagnostic_values[1], "%u", (unsigned)diag->fps);
-    lv_label_set_text_fmt(diagnostic_values[2], "%lu ms", (unsigned long)diag->msp_age_ms);
-    lv_label_set_text_fmt(diagnostic_values[3], "%lu", (unsigned long)diag->msp_timeouts);
-    lv_label_set_text_fmt(diagnostic_values[4], "%lu", (unsigned long)diag->uart_overruns);
-    lv_label_set_text_fmt(diagnostic_values[5], "%lu", (unsigned long)diag->frame_misses);
-    lv_label_set_text_fmt(diagnostic_values[6], "%lu us", (unsigned long)diag->max_loop_us);
-    lv_label_set_text_fmt(diagnostic_values[7], "%lu", (unsigned long)diag->ws2812_busy_drops);
-    lv_label_set_text_fmt(diagnostic_values[8], "%lu mA", (unsigned long)diag->led_current_ma);
-    lv_label_set_text(diagnostic_values[9], diag->touch_available ? "YES" : "NO");
-    lv_label_set_text_fmt(diagnostic_values[10], "0x%08lX", (unsigned long)diag->reset_flags);
+    set_fmt_if_changed(diagnostic_values[1], "%u", (unsigned)diag->fps);
+    set_fmt_if_changed(diagnostic_values[2], "%lu ms", (unsigned long)diag->msp_age_ms);
+    set_fmt_if_changed(diagnostic_values[3], "%lu", (unsigned long)diag->msp_timeouts);
+    set_fmt_if_changed(diagnostic_values[4], "%lu", (unsigned long)diag->uart_overruns);
+    set_fmt_if_changed(diagnostic_values[5], "%lu", (unsigned long)diag->frame_misses);
+    set_fmt_if_changed(diagnostic_values[6], "%lu us", (unsigned long)diag->max_loop_us);
+    set_fmt_if_changed(diagnostic_values[7], "%lu", (unsigned long)diag->ws2812_busy_drops);
+    set_fmt_if_changed(diagnostic_values[8], "%lu mA", (unsigned long)diag->led_current_ma);
+    set_text_if_changed(diagnostic_values[9], diag->touch_available ? "YES" : "NO");
+    set_fmt_if_changed(diagnostic_values[10], "0x%08lX", (unsigned long)diag->reset_flags);
 }
