@@ -20,14 +20,24 @@ add_executable(f469_ui
     ${hal}/Src/stm32f4xx_hal_pwr_ex.c
     ${hal}/Src/stm32f4xx_hal_rcc.c
     ${hal}/Src/stm32f4xx_hal_rcc_ex.c
+    ${CMAKE_SOURCE_DIR}/App/Src/ui/f469_ui.c
+    ${CMAKE_SOURCE_DIR}/App/Src/ui/f469_face.c
+    ${CMAKE_SOURCE_DIR}/App/Src/ui/f469_info.c
+    ${CMAKE_SOURCE_DIR}/App/Src/ui/ui_theme.c
+    ${CMAKE_SOURCE_DIR}/App/Src/ui/face_model.c
+    ${CMAKE_SOURCE_DIR}/App/Src/ui/two_screen_controller.c
+    ${CMAKE_SOURCE_DIR}/App/Src/ui/overview_model.c
 )
 target_include_directories(f469_ui PRIVATE
     ${core}
     ${hal}/Inc
     ${cube}/Drivers/CMSIS/Include
     ${cube}/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/App/Inc
+    ${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/lvgl
 )
-target_compile_definitions(f469_ui PRIVATE STM32F469xx USE_HAL_DRIVER)
+target_compile_definitions(f469_ui PRIVATE STM32F469xx USE_HAL_DRIVER LV_CONF_INCLUDE_SIMPLE)
 target_compile_options(f469_ui PRIVATE
     -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard
     -ffunction-sections -fdata-sections -Wall -Wextra
