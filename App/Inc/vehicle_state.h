@@ -35,6 +35,13 @@ typedef struct {
     uint32_t last_rc_ms;
     uint32_t last_lighting_rc_ms;
     uint32_t last_attitude_ms;
+    uint32_t last_analog_ms;
+    uint32_t last_gps_ms;
+    uint32_t last_status_ms;
+    bool rc_valid;
+    bool attitude_valid;
+    bool gps_valid;
+    bool status_valid;
 } VehicleState;
 
 void vehicle_state_init(void);

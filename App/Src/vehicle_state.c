@@ -174,6 +174,7 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
             return false;
         }
         state.last_rc_ms = now_ms;
+        state.rc_valid = true;
         if (freeze_fast && state.link != LINK_OK) {
             if (!has_lighting_channels) {
                 clear_lighting_rc();
@@ -215,6 +216,7 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         const float pitch = (float)raw_pitch * 0.1f;
         const float heading = (float)raw_heading;
         state.last_attitude_ms = now_ms;
+        state.attitude_valid = true;
         if (freeze_fast && state.link != LINK_OK) {
             return true;
         }
@@ -238,10 +240,13 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         state.battery_v = (float)frame->payload[0] * 0.1f;
         state.rssi = rssi;
         state.battery_valid = true;
+        state.last_analog_ms = now_ms;
         break;
     }
     case MSP_RAW_GPS:
         state.gps_sats = frame->payload[1];
+        state.last_gps_ms = now_ms;
+        state.gps_valid = true;
         break;
     case MSP_STATUS: {
         uint32_t mode_flags;
@@ -250,6 +255,8 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         }
         state.mode_flags = mode_flags;
         state.armed = (mode_flags & 1u) != 0u;
+        state.last_status_ms = now_ms;
+        state.status_valid = true;
         break;
     }
     default:

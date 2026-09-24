@@ -14,6 +14,13 @@ add_executable(two_screen_tests
 target_include_directories(two_screen_tests PRIVATE ../App/Inc)
 add_test(NAME two_screen_tests COMMAND two_screen_tests)
 
+add_executable(overview_model_tests
+    test_overview_model.c
+    ../App/Src/ui/overview_model.c
+)
+target_include_directories(overview_model_tests PRIVATE ../App/Inc)
+add_test(NAME overview_model_tests COMMAND overview_model_tests)
+
 add_executable(unit_tests
     test_main.c
     test_app_time.c
