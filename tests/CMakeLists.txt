@@ -6,6 +6,14 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 enable_testing()
 
+add_executable(two_screen_tests
+    test_two_screen_controller.c
+    ../App/Src/ui/two_screen_controller.c
+    ../App/Src/ui/face_model.c
+)
+target_include_directories(two_screen_tests PRIVATE ../App/Inc)
+add_test(NAME two_screen_tests COMMAND two_screen_tests)
+
 add_executable(unit_tests
     test_main.c
     test_app_time.c
