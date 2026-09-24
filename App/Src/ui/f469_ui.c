@@ -30,18 +30,6 @@ static void on_tab(lv_event_t *event)
     two_screen_select_main(&navigation, main);
 }
 
-static void on_gesture(lv_event_t *event)
-{
-    (void)event;
-    lv_indev_t *indev = lv_indev_active();
-    if (indev == NULL) return;
-    const lv_dir_t direction = lv_indev_get_gesture_dir(indev);
-    if (direction == LV_DIR_LEFT || direction == LV_DIR_RIGHT) {
-        two_screen_swipe(&navigation, direction == LV_DIR_LEFT, lv_tick_get());
-        lv_indev_wait_release(indev);
-    }
-}
-
 static lv_obj_t *make_tab(lv_obj_t *bar, const char *text, int32_t x,
                            MainScreen main)
 {
@@ -97,8 +85,6 @@ bool f469_ui_init(void)
     lv_obj_set_style_border_width(content, 0, 0);
     face_area = f469_face_create(content);
     info_area = f469_info_create(content);
-    lv_obj_add_event_cb(face_area, on_gesture, LV_EVENT_GESTURE, NULL);
-    lv_obj_add_event_cb(info_area, on_gesture, LV_EVENT_GESTURE, NULL);
     lv_obj_add_flag(info_area, LV_OBJ_FLAG_HIDDEN);
     lv_screen_load(screen);
     return true;
@@ -107,6 +93,11 @@ bool f469_ui_init(void)
 void f469_ui_button(bool touch_available)
 {
     two_screen_button(&navigation, touch_available);
+}
+
+void f469_ui_swipe(bool left, uint32_t now_ms)
+{
+    two_screen_swipe(&navigation, left, now_ms);
 }
 
 void f469_ui_tick(uint32_t now_ms, const VehicleState *state,

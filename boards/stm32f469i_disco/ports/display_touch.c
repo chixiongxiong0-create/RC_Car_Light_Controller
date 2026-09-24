@@ -6,6 +6,7 @@
 #include "stm32469i_discovery_lcd.h"
 #include "stm32469i_discovery_ts.h"
 #include "ft6x06.h"
+#include "ui/f469_ui.h"
 
 enum { LCD_WIDTH = 800, LCD_HEIGHT = 480, DRAW_LINES = 40 };
 
@@ -14,6 +15,35 @@ static lv_display_t *display;
 static bool touch_ok;
 static uint8_t touch_address;
 static uint32_t last_tick_ms;
+static bool gesture_tracking;
+static int32_t gesture_start_x;
+static int32_t gesture_start_y;
+static int32_t gesture_last_x;
+static int32_t gesture_last_y;
+static bool gesture_was_pressed;
+
+static void track_swipe(const lv_indev_data_t *data)
+{
+    if (data->state == LV_INDEV_STATE_PRESSED) {
+        if (!gesture_was_pressed) {
+            gesture_start_x = data->point.x;
+            gesture_start_y = data->point.y;
+            gesture_tracking = data->point.y >= 64;
+        }
+        gesture_last_x = data->point.x;
+        gesture_last_y = data->point.y;
+        gesture_was_pressed = true;
+    } else if (gesture_was_pressed) {
+        const int32_t dx = gesture_last_x - gesture_start_x;
+        const int32_t dy = gesture_last_y - gesture_start_y;
+        if (gesture_tracking && (dx >= 70 || dx <= -70) &&
+            dy > -100 && dy < 100) {
+            f469_ui_swipe(dx < 0, lv_tick_get());
+        }
+        gesture_was_pressed = false;
+        gesture_tracking = false;
+    }
+}
 
 static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *pixels)
 {
@@ -39,11 +69,13 @@ static void touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
     if (!touch_ok || BSP_TS_GetState(&state) != TS_OK ||
         state.touchDetected == 0u) {
         data->state = LV_INDEV_STATE_RELEASED;
+        track_swipe(data);
         return;
     }
     data->point.x = state.touchX[0];
     data->point.y = state.touchY[0];
     data->state = LV_INDEV_STATE_PRESSED;
+    track_swipe(data);
 }
 
 bool f469_display_touch_init(void)
