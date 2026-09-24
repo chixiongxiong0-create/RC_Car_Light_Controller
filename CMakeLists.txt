@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
+option(BUILD_F469_UI "Build the STM32F469I-DISCO UI target" OFF)
+if(BUILD_F469_UI)
+    project(f469_ui C ASM)
+    add_subdirectory(boards/stm32f469i_disco)
+    return()
+endif()
+
 project("wio_ai" C CXX ASM)
 
 set(WIO_AI_APP_LINKER_SCRIPT
