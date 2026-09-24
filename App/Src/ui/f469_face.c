@@ -15,8 +15,8 @@ static lv_obj_t *voltage_label;
 static int previous_mood = -1;
 static int previous_low_battery = -1;
 static int32_t previous_eye_height = -1;
-static int32_t previous_shake = INT32_MIN;
 static int32_t previous_gaze = INT32_MIN;
+static int32_t previous_pupil_y = INT32_MIN;
 
 static void set_text_if_changed(lv_obj_t *obj, const char *text)
 {
@@ -106,15 +106,18 @@ void f469_face_update(uint32_t now_ms, const VehicleState *state,
         lv_obj_set_size(right_eye, 165, eye_height);
         previous_eye_height = eye_height;
     }
-    if (geometry_changed || motion.shake_x != previous_shake) {
-        lv_obj_set_pos(left_eye, 190 + motion.shake_x, 120 + (170 - eye_height) / 2);
-        lv_obj_set_pos(right_eye, 445 + motion.shake_x, 120 + (170 - eye_height) / 2);
-        previous_shake = motion.shake_x;
+    if (geometry_changed) {
+        const int32_t eye_y = 120 + (170 - eye_height) / 2;
+        lv_obj_set_pos(left_eye, 190, eye_y);
+        lv_obj_set_pos(right_eye, 445, eye_y);
     }
-    if (base.gaze_x != previous_gaze) {
-        lv_obj_align(left_pupil, LV_ALIGN_CENTER, base.gaze_x, 0);
-        lv_obj_align(right_pupil, LV_ALIGN_CENTER, base.gaze_x, 0);
-        previous_gaze = base.gaze_x;
+    const int32_t gaze = base.gaze_x + motion.gaze_offset_x + motion.shake_x;
+    const int32_t pupil_y = motion.pupil_offset_y + motion.shake_y;
+    if (gaze != previous_gaze || pupil_y != previous_pupil_y) {
+        lv_obj_align(left_pupil, LV_ALIGN_CENTER, gaze, pupil_y);
+        lv_obj_align(right_pupil, LV_ALIGN_CENTER, gaze, pupil_y);
+        previous_gaze = gaze;
+        previous_pupil_y = pupil_y;
     }
     const lv_color_t color = mood == FACE_LINK_LOST || mood == FACE_LOW_BATTERY ?
                              lv_color_hex(0xFF646C) :

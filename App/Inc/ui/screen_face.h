@@ -31,6 +31,8 @@ typedef struct {
 typedef struct {
     int16_t shake_x;
     int16_t shake_y;
+    int16_t gaze_offset_x;
+    int16_t pupil_offset_y;
     uint8_t blink_closure;
 } FaceMotionModel;
 

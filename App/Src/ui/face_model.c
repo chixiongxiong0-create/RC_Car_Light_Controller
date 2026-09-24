@@ -54,11 +54,18 @@ FaceMotionModel face_motion_model(uint32_t now_ms, uint8_t aperture,
     static const int8_t wave[16] = {
         0, 1, 1, 2, 2, 2, 1, 1, 0, -1, -1, -2, -2, -2, -1, -1
     };
-    FaceMotionModel motion = {0, 0, 0u};
+    FaceMotionModel motion = {0};
     const int32_t energy = aperture > 35u ? (int32_t)aperture - 35 : 0;
     const uint32_t wave_index = (now_ms / 45u) % 16u;
-    motion.shake_x = (int16_t)((wave[wave_index] * energy) / 65);
-    motion.shake_y = (int16_t)((wave[(wave_index + 4u) % 16u] * energy) / 130);
+    motion.shake_x = (int16_t)((wave[wave_index] * energy) / 25);
+    motion.shake_y = (int16_t)(wave[wave_index] * (mood == FACE_FOCUSED ? 4 : 2));
+    motion.gaze_offset_x = (int16_t)(wave[(now_ms / 90u) % 16u] *
+                                      (mood == FACE_IDLE ? 8 : 3));
+    motion.pupil_offset_y = (int16_t)(wave[(wave_index + 4u) % 16u] * 3);
+    if (mood == FACE_REVERSE) {
+        motion.shake_x -= 8;
+        motion.gaze_offset_x -= 7;
+    }
 
     uint32_t blink_phase;
     if (mood == FACE_LINK_LOST) {
@@ -68,7 +75,11 @@ FaceMotionModel face_motion_model(uint32_t now_ms, uint8_t aperture,
             (uint8_t)(((500u - blink_phase) * 100u) / 250u);
     } else {
         blink_phase = now_ms % 4400u;
-        if (blink_phase >= 4200u && blink_phase <= 4320u) {
+        if (blink_phase >= 2620u && blink_phase <= 2740u) {
+            motion.blink_closure = blink_phase <= 2680u ?
+                (uint8_t)(((blink_phase - 2620u) * 100u) / 60u) :
+                (uint8_t)(((2740u - blink_phase) * 100u) / 60u);
+        } else if (blink_phase >= 4200u && blink_phase <= 4320u) {
             motion.blink_closure = blink_phase <= 4260u ?
                 (uint8_t)(((blink_phase - 4200u) * 100u) / 60u) :
                 (uint8_t)(((4320u - blink_phase) * 100u) / 60u);

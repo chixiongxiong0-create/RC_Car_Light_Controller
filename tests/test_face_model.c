@@ -86,4 +86,18 @@ void test_face_model(void)
     assert(blink_opening.blink_closure < blink_closed.blink_closure);
     assert(blink_closed.blink_closure == 100u);
     assert(blink_reopening.blink_closure < blink_closed.blink_closure);
+
+    const FaceMotionModel calm_a = face_motion_model(0u, 35u, FACE_IDLE);
+    const FaceMotionModel calm_b = face_motion_model(180u, 35u, FACE_IDLE);
+    assert(calm_a.shake_y != calm_b.shake_y);
+    assert(calm_a.gaze_offset_x != calm_b.gaze_offset_x);
+
+    const FaceMotionModel focused = face_motion_model(180u, 100u, FACE_FOCUSED);
+    assert(focused.shake_y > calm_b.shake_y);
+
+    const FaceMotionModel reverse = face_motion_model(180u, 100u, FACE_REVERSE);
+    assert(reverse.shake_x < focused.shake_x);
+
+    const FaceMotionModel blink_fast = face_motion_model(2700u, 35u, FACE_IDLE);
+    assert(blink_fast.blink_closure > 0u);
 }
