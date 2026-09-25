@@ -8,7 +8,10 @@
 #include "ft6x06.h"
 #include "ui/f469_ui.h"
 
-enum { LCD_WIDTH = 800, LCD_HEIGHT = 480, DRAW_LINES = 40 };
+extern DSI_HandleTypeDef hdsi_eval;
+
+enum { LCD_WIDTH = 800, LCD_HEIGHT = 480, DRAW_LINES = 40,
+       DCS_WRITE_DISPLAY_BRIGHTNESS = 0x51 };
 
 static uint16_t draw_buffer[LCD_WIDTH * DRAW_LINES];
 static lv_display_t *display;
@@ -87,6 +90,9 @@ bool f469_display_touch_init(void)
     BSP_LCD_SelectLayer(0u);
     memset((void *)LCD_FB_START_ADDRESS, 0, LCD_WIDTH * LCD_HEIGHT * 4u);
     BSP_LCD_DisplayOn();
+    if (HAL_DSI_ShortWrite(&hdsi_eval, LCD_Driver_ID,
+                           DSI_DCS_SHORT_PKT_WRITE_P1,
+                           DCS_WRITE_DISPLAY_BRIGHTNESS, 0xFFu) != HAL_OK) return false;
 
     lv_init();
     display = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
