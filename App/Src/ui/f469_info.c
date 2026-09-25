@@ -112,6 +112,7 @@ lv_obj_t *f469_info_create(lv_obj_t *parent)
     brightness_slider = lv_slider_create(overview_page);
     lv_obj_set_pos(brightness_slider, 185, 369);
     lv_obj_set_size(brightness_slider, 500, 30);
+    lv_obj_set_ext_click_area(brightness_slider, 15);
     lv_slider_set_range(brightness_slider, 10, 100);
     lv_slider_set_value(brightness_slider, 100, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(brightness_slider, UI_COLOR_YELLOW,

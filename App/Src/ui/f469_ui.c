@@ -36,6 +36,7 @@ static lv_obj_t *make_tab(lv_obj_t *bar, const char *text, int32_t x,
     lv_obj_t *button = lv_button_create(bar);
     lv_obj_set_pos(button, x, 6);
     lv_obj_set_size(button, 145, 52);
+    lv_obj_set_ext_click_area(button, 4);
     lv_obj_set_style_radius(button, 8, 0);
     lv_obj_add_event_cb(button, on_tab, LV_EVENT_CLICKED, (void *)(uintptr_t)main);
     lv_obj_t *caption = lv_label_create(button);

@@ -18,6 +18,7 @@ add_executable(f469_ui
     ${core}/main.c
     ${core}/clock.c
     ports/display_touch.c
+    ports/f469_touch_logic.c
     ports/msp_uart_f469.c
     ports/lamp_f469.c
     ports/ws2812_f469.c

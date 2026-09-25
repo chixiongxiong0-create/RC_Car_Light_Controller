@@ -6,6 +6,7 @@
 #include "stm32469i_discovery_lcd.h"
 #include "stm32469i_discovery_ts.h"
 #include "ft6x06.h"
+#include "f469_touch_logic.h"
 #include "ui/f469_ui.h"
 
 extern DSI_HandleTypeDef hdsi_eval;
@@ -18,43 +19,13 @@ static lv_display_t *display;
 static bool touch_ok;
 static uint8_t touch_address;
 static uint32_t last_tick_ms;
-static bool gesture_tracking;
-static int32_t gesture_start_x;
-static int32_t gesture_start_y;
-static int32_t gesture_last_x;
-static int32_t gesture_last_y;
-static bool gesture_was_pressed;
+static F469TouchLogic touch_logic;
 
 bool f469_display_set_brightness(uint8_t value)
 {
     return HAL_DSI_ShortWrite(&hdsi_eval, LCD_Driver_ID,
                               DSI_DCS_SHORT_PKT_WRITE_P1,
                               DCS_WRITE_DISPLAY_BRIGHTNESS, value) == HAL_OK;
-}
-
-static void track_swipe(const lv_indev_data_t *data)
-{
-    if (data->state == LV_INDEV_STATE_PRESSED) {
-        if (!gesture_was_pressed) {
-            gesture_start_x = data->point.x;
-            gesture_start_y = data->point.y;
-            gesture_tracking = data->point.y >= 64 &&
-                               !f469_ui_brightness_hit_test(data->point.x,
-                                                            data->point.y);
-        }
-        gesture_last_x = data->point.x;
-        gesture_last_y = data->point.y;
-        gesture_was_pressed = true;
-    } else if (gesture_was_pressed) {
-        const int32_t dx = gesture_last_x - gesture_start_x;
-        const int32_t dy = gesture_last_y - gesture_start_y;
-        if (gesture_tracking && (dx >= 70 || dx <= -70) &&
-            dy > -100 && dy < 100) {
-            f469_ui_swipe(dx < 0, lv_tick_get());
-        }
-        gesture_was_pressed = false;
-        gesture_tracking = false;
-    }
 }
 
 static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *pixels)
@@ -77,21 +48,34 @@ static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *pixels)
 static void touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
 {
     (void)indev;
-    TS_StateTypeDef state = {0};
-    if (!touch_ok || BSP_TS_GetState(&state) != TS_OK ||
-        state.touchDetected == 0u) {
-        data->state = LV_INDEV_STATE_RELEASED;
-        track_swipe(data);
-        return;
+    bool raw_pressed = false;
+    int32_t x = 0, y = 0;
+    if (touch_ok) {
+        const uint8_t count = ft6x06_TS_DetectTouch(touch_address);
+        if (count == 1u) {
+            uint16_t raw_x = 0, raw_y = 0;
+            ft6x06_TS_GetXY(touch_address, &raw_x, &raw_y);
+            if (raw_x < FT_6206_MAX_HEIGHT && raw_y < FT_6206_MAX_WIDTH) {
+                x = raw_y;
+                y = FT_6206_MAX_HEIGHT - 1 - raw_x;
+                raw_pressed = true;
+            }
+        } else if (count > 1u) {
+            touch_logic.swipe_allowed = false;
+        }
     }
-    data->point.x = state.touchX[0];
-    data->point.y = state.touchY[0];
-    data->state = LV_INDEV_STATE_PRESSED;
-    track_swipe(data);
+    const bool allow_swipe = y >= 64 && !f469_ui_brightness_hit_test(x, y);
+    const F469TouchResult result = f469_touch_step(
+        &touch_logic, raw_pressed, x, y, lv_tick_get(), allow_swipe);
+    data->point.x = result.x;
+    data->point.y = result.y;
+    data->state = result.pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+    if (result.swiped) f469_ui_swipe(result.swipe_left, lv_tick_get());
 }
 
 bool f469_display_touch_init(void)
 {
+    touch_logic = (F469TouchLogic){0};
     if (BSP_LCD_Init() != LCD_OK) return false;
     if (BSP_LCD_GetXSize() != LCD_WIDTH ||
         BSP_LCD_GetYSize() != LCD_HEIGHT) return false;

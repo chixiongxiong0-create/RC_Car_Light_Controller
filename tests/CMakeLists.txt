@@ -11,6 +11,13 @@ target_include_directories(f469_chain_order_tests PRIVATE
     ../boards/stm32f469i_disco/ports ../App/Inc)
 add_test(NAME f469_chain_order_tests COMMAND f469_chain_order_tests)
 
+add_executable(f469_touch_logic_tests
+    test_f469_touch_logic.c
+    ../boards/stm32f469i_disco/ports/f469_touch_logic.c)
+target_include_directories(f469_touch_logic_tests PRIVATE
+    ../boards/stm32f469i_disco/ports)
+add_test(NAME f469_touch_logic_tests COMMAND f469_touch_logic_tests)
+
 add_executable(two_screen_tests
     test_two_screen_controller.c
     ../App/Src/ui/two_screen_controller.c
