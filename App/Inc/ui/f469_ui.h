@@ -12,3 +12,4 @@ void f469_ui_tick(uint32_t now_ms, const VehicleState *state,
                   bool low_battery, bool demo);
 void f469_ui_button(bool touch_available);
 void f469_ui_swipe(bool left, uint32_t now_ms);
+bool f469_ui_brightness_hit_test(int32_t x, int32_t y);

@@ -100,6 +100,13 @@ void f469_ui_swipe(bool left, uint32_t now_ms)
     two_screen_swipe(&navigation, left, now_ms);
 }
 
+bool f469_ui_brightness_hit_test(int32_t x, int32_t y)
+{
+    const TwoScreenView view = two_screen_view(&navigation);
+    return view.main == MAIN_INFO && view.info == INFO_OVERVIEW &&
+           f469_info_brightness_hit_test(x, y);
+}
+
 void f469_ui_tick(uint32_t now_ms, const VehicleState *state,
                   const DiagnosticsSnapshot *diagnostics,
                   bool low_battery, bool demo)

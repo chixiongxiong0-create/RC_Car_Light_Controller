@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include "display_touch.h"
 #include "ui/overview_model.h"
 #include "ui/ui_theme.h"
 
@@ -12,7 +13,18 @@ static lv_obj_t *overview_page;
 static lv_obj_t *diagnostic_page;
 static lv_obj_t *overview_values[OVERVIEW_FIELDS];
 static lv_obj_t *diagnostic_values[DIAGNOSTIC_FIELDS];
+static lv_obj_t *brightness_slider;
+static lv_obj_t *brightness_value;
 static int previous_page = -1;
+
+bool f469_info_brightness_hit_test(int32_t x, int32_t y)
+{
+    if (brightness_slider == NULL) return false;
+    lv_area_t area;
+    lv_obj_get_coords(brightness_slider, &area);
+    return x >= area.x1 - 15 && x <= area.x2 + 15 &&
+           y >= area.y1 - 15 && y <= area.y2 + 15;
+}
 
 static void set_text_if_changed(lv_obj_t *obj, const char *text)
 {
@@ -27,6 +39,14 @@ static void set_fmt_if_changed(lv_obj_t *obj, const char *format, ...)
     (void)vsnprintf(text, sizeof text, format, args);
     va_end(args);
     set_text_if_changed(obj, text);
+}
+
+static void on_brightness_changed(lv_event_t *event)
+{
+    const int32_t percent = lv_slider_get_value(lv_event_get_target_obj(event));
+    const uint8_t command = (uint8_t)((percent * 255 + 50) / 100);
+    if (!f469_display_set_brightness(command)) return;
+    set_fmt_if_changed(brightness_value, "%ld%%", (long)percent);
 }
 
 static lv_obj_t *make_text(lv_obj_t *parent, const char *text, int32_t x,
@@ -76,17 +96,32 @@ lv_obj_t *f469_info_create(lv_obj_t *parent)
 
     for (unsigned i = 0; i < OVERVIEW_FIELDS; ++i) {
         const int32_t x = 16 + (int32_t)(i % 3u) * 261;
-        const int32_t y = 50 + (int32_t)(i / 3u) * 117;
+        const int32_t y = 50 + (int32_t)(i / 3u) * 102;
         lv_obj_t *tile = lv_obj_create(overview_page);
         lv_obj_remove_flag(tile, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
         lv_obj_set_pos(tile, x, y);
-        lv_obj_set_size(tile, 247, 106);
+        lv_obj_set_size(tile, 247, 90);
         ui_theme_apply_panel(tile);
         make_text(tile, overview_titles[i], 12, 8,
                   &lv_font_montserrat_16, UI_COLOR_MUTED);
         overview_values[i] = make_text(tile, "--", 12, 44,
                                        &lv_font_montserrat_24, UI_COLOR_YELLOW);
     }
+    make_text(overview_page, "BRIGHTNESS", 20, 375,
+              &lv_font_montserrat_16, UI_COLOR_MUTED);
+    brightness_slider = lv_slider_create(overview_page);
+    lv_obj_set_pos(brightness_slider, 185, 369);
+    lv_obj_set_size(brightness_slider, 500, 30);
+    lv_slider_set_range(brightness_slider, 10, 100);
+    lv_slider_set_value(brightness_slider, 100, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(brightness_slider, UI_COLOR_YELLOW,
+                              LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(brightness_slider, UI_COLOR_YELLOW,
+                              LV_PART_KNOB);
+    brightness_value = make_text(overview_page, "100%", 710, 375,
+                                 &lv_font_montserrat_16, UI_COLOR_YELLOW);
+    lv_obj_add_event_cb(brightness_slider, on_brightness_changed,
+                        LV_EVENT_VALUE_CHANGED, NULL);
     for (unsigned i = 0; i < DIAGNOSTIC_FIELDS; ++i) {
         const int32_t x = 18 + (int32_t)(i / 6u) * 390;
         const int32_t y = 53 + (int32_t)(i % 6u) * 55;

@@ -25,13 +25,22 @@ static int32_t gesture_last_x;
 static int32_t gesture_last_y;
 static bool gesture_was_pressed;
 
+bool f469_display_set_brightness(uint8_t value)
+{
+    return HAL_DSI_ShortWrite(&hdsi_eval, LCD_Driver_ID,
+                              DSI_DCS_SHORT_PKT_WRITE_P1,
+                              DCS_WRITE_DISPLAY_BRIGHTNESS, value) == HAL_OK;
+}
+
 static void track_swipe(const lv_indev_data_t *data)
 {
     if (data->state == LV_INDEV_STATE_PRESSED) {
         if (!gesture_was_pressed) {
             gesture_start_x = data->point.x;
             gesture_start_y = data->point.y;
-            gesture_tracking = data->point.y >= 64;
+            gesture_tracking = data->point.y >= 64 &&
+                               !f469_ui_brightness_hit_test(data->point.x,
+                                                            data->point.y);
         }
         gesture_last_x = data->point.x;
         gesture_last_y = data->point.y;
@@ -90,9 +99,7 @@ bool f469_display_touch_init(void)
     BSP_LCD_SelectLayer(0u);
     memset((void *)LCD_FB_START_ADDRESS, 0, LCD_WIDTH * LCD_HEIGHT * 4u);
     BSP_LCD_DisplayOn();
-    if (HAL_DSI_ShortWrite(&hdsi_eval, LCD_Driver_ID,
-                           DSI_DCS_SHORT_PKT_WRITE_P1,
-                           DCS_WRITE_DISPLAY_BRIGHTNESS, 0xFFu) != HAL_OK) return false;
+    if (!f469_display_set_brightness(0xFFu)) return false;
 
     lv_init();
     display = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
