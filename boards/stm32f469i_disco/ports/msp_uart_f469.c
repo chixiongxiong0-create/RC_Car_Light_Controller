@@ -17,15 +17,15 @@ static volatile bool tx_busy;
 
 bool f469_msp_uart_init(void)
 {
-    __HAL_RCC_GPIOG_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_USART6_CLK_ENABLE();
     GPIO_InitTypeDef gpio = {0};
-    gpio.Pin = GPIO_PIN_14 | GPIO_PIN_9;
+    gpio.Pin = GPIO_PIN_6 | GPIO_PIN_7;
     gpio.Mode = GPIO_MODE_AF_PP;
     gpio.Pull = GPIO_PULLUP;
     gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     gpio.Alternate = GPIO_AF8_USART6;
-    HAL_GPIO_Init(GPIOG, &gpio);
+    HAL_GPIO_Init(GPIOC, &gpio);
 
     uart.Instance = USART6;
     uart.Init.BaudRate = 115200;

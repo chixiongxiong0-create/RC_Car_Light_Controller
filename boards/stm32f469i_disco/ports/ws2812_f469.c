@@ -14,19 +14,19 @@ static volatile uint32_t last_dma_error_code, last_dma_state;
 
 static void pin_low(uint16_t pin)
 {
-    HAL_GPIO_WritePin(GPIOC, pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, pin, GPIO_PIN_RESET);
     GPIO_InitTypeDef gpio = {0};
     gpio.Pin = pin;
     gpio.Mode = GPIO_MODE_OUTPUT_PP;
     gpio.Pull = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    HAL_GPIO_Init(GPIOC, &gpio);
+    HAL_GPIO_Init(GPIOB, &gpio);
 }
 void f469_ws2812_force_low(void)
 {
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    pin_low(GPIO_PIN_6);
-    pin_low(GPIO_PIN_7);
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    pin_low(GPIO_PIN_4);
+    pin_low(GPIO_PIN_5);
 }
 static void pin_timer(uint16_t pin)
 {
@@ -36,7 +36,7 @@ static void pin_timer(uint16_t pin)
     gpio.Pull = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     gpio.Alternate = GPIO_AF2_TIM3;
-    HAL_GPIO_Init(GPIOC, &gpio);
+    HAL_GPIO_Init(GPIOB, &gpio);
 }
 static bool init_dma(DMA_HandleTypeDef *dma, DMA_Stream_TypeDef *stream)
 {
@@ -122,8 +122,8 @@ bool f469_ws2812_submit(uint32_t now_ms, const Ws2812Frame *frame)
     if (busy) { ++busy_drops; return false; }
     if ((uint32_t)(now_ms - last_submit) < 34u) return false;
     encode_frame(frame);
-    pin_timer(GPIO_PIN_6);
-    pin_timer(GPIO_PIN_7);
+    pin_timer(GPIO_PIN_4);
+    pin_timer(GPIO_PIN_5);
     TIM3->CCER &= ~(TIM_CCER_CC1E | TIM_CCER_CC2E);
     __HAL_TIM_SET_COMPARE(&timer, TIM_CHANNEL_1, 0u);
     __HAL_TIM_SET_COMPARE(&timer, TIM_CHANNEL_2, 0u);

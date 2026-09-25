@@ -1,6 +1,6 @@
 # MB1189 B-01 上板验收记录
 
-记录日期：2026-09-24。状态 `PASS` 仅代表已执行并有结果；`PENDING` 代表尚未实测。
+记录日期：2026-09-24；CN12 改线复测：2026-09-25。状态 `PASS` 仅代表已执行并有结果；`PENDING` 代表尚未实测。
 
 | 项目 | 状态 | 记录 / 通过条件 |
 | --- | --- | --- |
@@ -9,8 +9,9 @@
 | ST-LINK 单板连接与固件运行 | PASS | 识别 STM32F469、2 MB Flash、3.04 V；烧录后校验成功；运行计时递增，SystemCoreClock 为 180 MHz，诊断健康 OK，界面刷新约 29–30 FPS。原始 2 MB Flash 已备份在 `E:/workspace/fpv/hardware_backups/mb1189-b01-before-f469-port-2026-09-24.bin`。 |
 | 实板 SDRAM 画面读回 | PASS | 经 ST-LINK 读回 800×480 帧缓冲，已检查表情、总览、详细诊断三张图；见本目录 PNG。画面采集期间的局部撕裂不代表屏幕实物问题。 |
 | WS2812 定时器 DMA 软件状态 | PASS | 板上读数：TIM3 ARR=112，90 MHz 计时对应约 796.5 kHz；CCR 目标值 32/63 tick（约 356/700 ns）；DMA 完成计数持续增加，错误计数 0。DIN 波形仍待示波器确认。 |
-| 无 MSP 时的灯输出寄存器 | PASS | 读回 GPIOC ODR=0；PC13/PC1 灯控制保持低，PC6/PC7 在采样时为低。外接负载未接入。 |
-| B-01 晶振与候选引脚 | PENDING | 核对 8/25 MHz 晶振与 CN7/CN12 信号实际连通，排除板上外设占用。 |
+| CN12 改线后的引脚复用 | PASS | 烧录并校验后，读回 GPIOB AFRL=0x00220000（PB4/PB5 为 TIM3 AF2），GPIOC AFRL=0x8800000C（PC6/PC7 为 USART6 AF8）；TIM3 DMA 完成计数增加、错误计数 0；健康 OK、界面约 29 FPS。尚未核对 B-01 接头到芯片的实物连通和外接波形。 |
+| 无 MSP 时的灯输出寄存器 | PASS | 先前版本读回 GPIOC ODR=0；PC13/PC1 灯控制保持低。改线后 PB4/PB5 与 PC6/PC7 的引脚复用已读回；外接负载未接入。 |
+| B-01 晶振与候选引脚 | PENDING | 核对 8/25 MHz 晶振与 CN12 5/6/8/9 信号实际连通，排除板上外设占用。 |
 | 单板 800×480 显示观感 | PENDING | 请观察两屏有无剪裁、闪烁、花屏；记录供电电流。 |
 | 触摸与 USER 回退 | PENDING | 点按两个主标签；两页内左右滑动；测试触摸不可用时 USER 按钮。 |
 | MSP 独立 UART | PENDING | 3.3 V、交叉 TX/RX、共地；确认总览数据与诊断 MSP age 更新。 |
