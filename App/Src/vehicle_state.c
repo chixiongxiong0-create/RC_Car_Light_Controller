@@ -74,6 +74,7 @@ static float normalize_channel(uint16_t pulse)
 
 static void clear_lighting_rc(void)
 {
+    state.aux4 = -1.0f;
     state.aux6 = -1.0f;
     state.aux7 = -1.0f;
     state.aux8 = -1.0f;
@@ -128,6 +129,7 @@ void vehicle_state_init(void)
 {
     memset(&state, 0, sizeof state);
     state.link = LINK_STARTING;
+    state.aux4 = -1.0f;
     state.aux6 = -1.0f;
     state.aux7 = -1.0f;
     state.aux8 = -1.0f;
@@ -153,14 +155,34 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         uint16_t raw_steering;
         uint16_t raw_throttle;
         uint16_t raw_aux_page;
+#ifdef F469_RC_LAYOUT
+        if (!read_u16(frame, 4u, &raw_steering) ||
+            !read_u16(frame, 2u, &raw_throttle) ||
+            !read_u16(frame, 8u, &raw_aux_page)) {
+            return false;
+        }
+#else
         if (!read_u16(frame, 0u, &raw_steering) ||
             !read_u16(frame, 4u, &raw_throttle) ||
             !read_u16(frame, 8u, &raw_aux_page)) {
             return false;
         }
+#endif
         const float steering = normalize_channel(raw_steering);
         const float throttle = normalize_channel(raw_throttle);
         const float aux_page = normalize_channel(raw_aux_page);
+#ifdef F469_RC_LAYOUT
+        uint16_t raw_aux4;
+        uint16_t raw_aux7;
+        uint16_t raw_aux8;
+        const bool has_lighting_channels = frame->length >= 24u;
+        if (has_lighting_channels &&
+            (!read_u16(frame, 14u, &raw_aux4) ||
+             !read_u16(frame, 20u, &raw_aux7) ||
+             !read_u16(frame, 22u, &raw_aux8))) {
+            return false;
+        }
+#else
         uint16_t raw_aux6;
         uint16_t raw_aux7;
         uint16_t raw_aux8;
@@ -173,6 +195,7 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
              !read_u16(frame, 24u, &raw_aux9))) {
             return false;
         }
+#endif
         state.last_rc_ms = now_ms;
         state.rc_valid = true;
         if (freeze_fast && state.link != LINK_OK) {
@@ -192,10 +215,16 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
             state.aux_page = lowpass(state.aux_page, aux_page, 0.35f);
         }
         if (has_lighting_channels) {
+#ifdef F469_RC_LAYOUT
+            state.aux4 = normalize_channel(raw_aux4);
+            state.aux7 = normalize_channel(raw_aux7);
+            state.aux8 = normalize_channel(raw_aux8);
+#else
             state.aux6 = normalize_channel(raw_aux6);
             state.aux7 = normalize_channel(raw_aux7);
             state.aux8 = normalize_channel(raw_aux8);
             state.aux9 = normalize_channel(raw_aux9);
+#endif
             state.lighting_rc_valid = true;
             state.last_lighting_rc_ms = now_ms;
         } else {

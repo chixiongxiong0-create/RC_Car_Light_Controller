@@ -22,10 +22,10 @@ static uint16_t normalized_to_duty(float value)
     return (uint16_t)(unit * 1000.0f + 0.5f);
 }
 
-static void update_external_lights(LightingFrame *frame, float aux6)
+static void update_external_lights(LightingFrame *frame, float lamp_control)
 {
-    frame->front_duty = aux6 >= -0.2f ? 1000u : 0u;
-    frame->roof_spot_duty = aux6 > 0.8f ? 1000u : 0u;
+    frame->front_duty = lamp_control >= -0.2f ? 1000u : 0u;
+    frame->roof_spot_duty = lamp_control > 0.8f ? 1000u : 0u;
 }
 
 static uint8_t normalized_to_level(float value)
@@ -42,9 +42,9 @@ static RoofLightMode mode_for_aux(float value)
     return (RoofLightMode)mode;
 }
 
-static void update_roof_mode(LightingController *controller, float aux8)
+static void update_roof_mode(LightingController *controller, float mode_control)
 {
-    const float value = clamp_normalized(aux8);
+    const float value = clamp_normalized(mode_control);
     const RoofLightMode candidate = mode_for_aux(value);
     const float hysteresis = 0.03f;
 
@@ -67,9 +67,9 @@ static LedRgb scale_color(LedRgb color, uint8_t level)
     return color;
 }
 
-static uint32_t animation_period(float aux9)
+static uint32_t animation_period(float effect_control)
 {
-    const uint16_t speed = normalized_to_duty(aux9);
+    const uint16_t speed = normalized_to_duty(effect_control);
     return 1600u - ((uint32_t)speed * 1200u) / 1000u;
 }
 
@@ -154,11 +154,12 @@ static void render_drive_sync(const LightingController *controller, uint32_t now
 }
 
 static void render_roof(const LightingController *controller, uint32_t now_ms,
-                        const VehicleState *state, Ws2812Frame *frame)
+                        const VehicleState *state, float effect_control,
+                        Ws2812Frame *frame)
 {
     const size_t roof_count = 16u;
-    const uint8_t level = normalized_to_level(state->aux9);
-    const uint32_t period = animation_period(state->aux9);
+    const uint8_t level = normalized_to_level(effect_control);
+    const uint32_t period = animation_period(effect_control);
 
     if (controller->roof_mode == ROOF_LIGHT_OFF) return;
     if (controller->roof_mode == ROOF_LIGHT_STEADY_WHITE) {
@@ -397,14 +398,23 @@ void lighting_controller_render(LightingController *controller, uint32_t now_ms,
         return;
     }
     controller->has_seen_valid_lighting_rc = true;
+#ifdef F469_RC_LAYOUT
+    update_external_lights(frame, state->aux4);
+    update_roof_mode(controller, state->aux7);
+#else
     update_external_lights(frame, state->aux6);
     update_roof_mode(controller, state->aux8);
+#endif
     update_brake(controller, now_ms, state->throttle);
     update_turn(controller, now_ms, state->steering);
     frame->roof_mode = controller->roof_mode;
     render_rear(controller, now_ms, state, &frame->ws2812);
     if (!render_warning(now_ms, low_battery, board_fault, &frame->ws2812)) {
-        render_roof(controller, now_ms, state, &frame->ws2812);
+#ifdef F469_RC_LAYOUT
+        render_roof(controller, now_ms, state, state->aux8, &frame->ws2812);
+#else
+        render_roof(controller, now_ms, state, state->aux9, &frame->ws2812);
+#endif
     }
     limit_frame(frame);
 }

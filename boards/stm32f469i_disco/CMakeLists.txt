@@ -84,7 +84,7 @@ target_include_directories(f469_ui PRIVATE
     ${CMAKE_SOURCE_DIR}/App/Inc
     ${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/lvgl
 )
-target_compile_definitions(f469_ui PRIVATE STM32F469xx USE_HAL_DRIVER LV_CONF_INCLUDE_SIMPLE)
+target_compile_definitions(f469_ui PRIVATE STM32F469xx USE_HAL_DRIVER LV_CONF_INCLUDE_SIMPLE F469_RC_LAYOUT=1)
 if(F469_DISCO_REVA)
     target_compile_definitions(f469_ui PRIVATE USE_STM32469I_DISCO_REVA)
 else()

@@ -16,6 +16,7 @@ typedef struct {
     float throttle;
     float steering;
     float aux_page;
+    float aux4;
     float aux6;
     float aux7;
     float aux8;
