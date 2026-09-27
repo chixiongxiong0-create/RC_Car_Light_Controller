@@ -173,13 +173,9 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         const float aux_page = normalize_channel(raw_aux_page);
 #ifdef F469_RC_LAYOUT
         uint16_t raw_aux4;
-        uint16_t raw_aux7;
-        uint16_t raw_aux8;
-        const bool has_lighting_channels = frame->length >= 24u;
+        const bool has_lighting_channels = frame->length >= 16u;
         if (has_lighting_channels &&
-            (!read_u16(frame, 14u, &raw_aux4) ||
-             !read_u16(frame, 20u, &raw_aux7) ||
-             !read_u16(frame, 22u, &raw_aux8))) {
+            !read_u16(frame, 14u, &raw_aux4)) {
             return false;
         }
 #else
@@ -217,8 +213,6 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         if (has_lighting_channels) {
 #ifdef F469_RC_LAYOUT
             state.aux4 = normalize_channel(raw_aux4);
-            state.aux7 = normalize_channel(raw_aux7);
-            state.aux8 = normalize_channel(raw_aux8);
 #else
             state.aux6 = normalize_channel(raw_aux6);
             state.aux7 = normalize_channel(raw_aux7);

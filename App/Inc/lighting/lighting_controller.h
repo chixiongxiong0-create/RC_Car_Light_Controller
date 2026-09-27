@@ -8,13 +8,20 @@
 
 #define LIGHTING_ESTIMATED_CURRENT_BUDGET_MA 850u
 
-/* WS3/PF11 and WS4/PF12 are the default left/right 8-pixel strips.
- * Logical pixel 0 is the front of the car. Adjust only these four values
- * if the physical connector or data-input end differs. */
+/* Logical pixel 0 is the front of the car. F469 physical side wiring was
+ * verified on the vehicle: group 3 is left, group 2 is right, and the left
+ * chain's DIN-to-DOUT direction is reversed. */
+#ifdef F469_RC_LAYOUT
+#define LIGHTING_LEFT_STRIP_GROUP 3u
+#define LIGHTING_RIGHT_STRIP_GROUP 2u
+#define LIGHTING_LEFT_STRIP_REVERSED 1u
+#define LIGHTING_RIGHT_STRIP_REVERSED 0u
+#else
 #define LIGHTING_LEFT_STRIP_GROUP 2u
 #define LIGHTING_RIGHT_STRIP_GROUP 3u
 #define LIGHTING_LEFT_STRIP_REVERSED 0u
 #define LIGHTING_RIGHT_STRIP_REVERSED 0u
+#endif
 
 typedef enum {
     ROOF_LIGHT_OFF,
@@ -41,7 +48,10 @@ typedef struct {
     float previous_throttle;
     uint32_t brake_trigger_ms;
     uint32_t turn_start_ms;
+    uint32_t color_phase_milli;
+    uint32_t color_last_ms;
     int8_t active_turn;
+    bool color_clock_started;
     bool has_previous_throttle;
     bool forward_armed;
     bool brake_active;

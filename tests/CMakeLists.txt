@@ -22,6 +22,7 @@ add_executable(f469_rc_mapping_tests
     test_f469_rc_mapping.c
     ../App/Src/vehicle_state.c
     ../App/Src/lighting/lighting_controller.c
+    ../App/Src/lighting/f469_vehicle_effects.c
     ../App/Src/led/led_controller.c)
 target_include_directories(f469_rc_mapping_tests PRIVATE ../App/Inc)
 target_compile_definitions(f469_rc_mapping_tests PRIVATE F469_RC_LAYOUT=1)
@@ -29,6 +30,18 @@ if(NOT MSVC)
     target_link_libraries(f469_rc_mapping_tests PRIVATE m)
 endif()
 add_test(NAME f469_rc_mapping_tests COMMAND f469_rc_mapping_tests)
+
+add_executable(f469_vehicle_effects_tests
+    test_f469_vehicle_effects.c
+    ../App/Src/lighting/lighting_controller.c
+    ../App/Src/lighting/f469_vehicle_effects.c
+    ../App/Src/led/led_controller.c)
+target_include_directories(f469_vehicle_effects_tests PRIVATE ../App/Inc)
+target_compile_definitions(f469_vehicle_effects_tests PRIVATE F469_RC_LAYOUT=1)
+if(NOT MSVC)
+    target_link_libraries(f469_vehicle_effects_tests PRIVATE m)
+endif()
+add_test(NAME f469_vehicle_effects_tests COMMAND f469_vehicle_effects_tests)
 
 add_executable(two_screen_tests
     test_two_screen_controller.c

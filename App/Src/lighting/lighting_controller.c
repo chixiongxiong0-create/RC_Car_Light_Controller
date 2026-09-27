@@ -1,6 +1,9 @@
 #include "lighting/lighting_controller.h"
 
 #include <string.h>
+#ifdef F469_RC_LAYOUT
+#include "lighting/f469_vehicle_effects.h"
+#endif
 
 #if (LIGHTING_LEFT_STRIP_GROUP < 2u || LIGHTING_LEFT_STRIP_GROUP > 3u || \
      LIGHTING_RIGHT_STRIP_GROUP < 2u || LIGHTING_RIGHT_STRIP_GROUP > 3u || \
@@ -9,6 +12,7 @@
 #error Invalid drive-sync strip mapping
 #endif
 
+#ifndef F469_RC_LAYOUT
 static float clamp_normalized(float value)
 {
     if (value < -1.0f) return -1.0f;
@@ -21,6 +25,7 @@ static uint16_t normalized_to_duty(float value)
     const float unit = (clamp_normalized(value) + 1.0f) * 0.5f;
     return (uint16_t)(unit * 1000.0f + 0.5f);
 }
+#endif
 
 static void update_external_lights(LightingFrame *frame, float lamp_control)
 {
@@ -28,6 +33,7 @@ static void update_external_lights(LightingFrame *frame, float lamp_control)
     frame->roof_spot_duty = lamp_control > 0.8f ? 1000u : 0u;
 }
 
+#ifndef F469_RC_LAYOUT
 static uint8_t normalized_to_level(float value)
 {
     const float unit = (clamp_normalized(value) + 1.0f) * 0.5f;
@@ -209,6 +215,7 @@ static void render_roof(const LightingController *controller, uint32_t now_ms,
     else status = (LedRgb){0u, level, 0u};
     for (size_t i = 0u; i < roof_count; ++i) *roof_pixel(frame, i) = status;
 }
+#endif
 
 static void update_brake(LightingController *controller, uint32_t now_ms,
                          float throttle)
@@ -248,6 +255,7 @@ static void copy_rear(Ws2812Frame *frame, const LedRgb rear[4])
     }
 }
 
+#ifndef F469_RC_LAYOUT
 static void copy_rear_sides(Ws2812Frame *frame, const LedRgb left[4],
                             const LedRgb right[4])
 {
@@ -316,6 +324,7 @@ static void render_rear(const LightingController *controller, uint32_t now_ms,
     }
     copy_rear_sides(frame, left, right);
 }
+#endif
 
 static bool pulse_on(uint32_t phase_ms, uint32_t on_ms,
                      uint32_t spacing_ms, unsigned pulses)
@@ -400,21 +409,22 @@ void lighting_controller_render(LightingController *controller, uint32_t now_ms,
     controller->has_seen_valid_lighting_rc = true;
 #ifdef F469_RC_LAYOUT
     update_external_lights(frame, state->aux4);
-    update_roof_mode(controller, state->aux7);
+    frame->roof_mode = ROOF_LIGHT_DRIVE_SYNC;
 #else
     update_external_lights(frame, state->aux6);
     update_roof_mode(controller, state->aux8);
 #endif
     update_brake(controller, now_ms, state->throttle);
     update_turn(controller, now_ms, state->steering);
+#ifdef F469_RC_LAYOUT
+    if (!render_warning(now_ms, low_battery, board_fault, &frame->ws2812))
+        f469_vehicle_effects_render(controller, now_ms, state, &frame->ws2812);
+#else
     frame->roof_mode = controller->roof_mode;
     render_rear(controller, now_ms, state, &frame->ws2812);
     if (!render_warning(now_ms, low_battery, board_fault, &frame->ws2812)) {
-#ifdef F469_RC_LAYOUT
-        render_roof(controller, now_ms, state, state->aux8, &frame->ws2812);
-#else
         render_roof(controller, now_ms, state, state->aux9, &frame->ws2812);
-#endif
     }
+#endif
     limit_frame(frame);
 }

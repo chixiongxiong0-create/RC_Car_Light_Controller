@@ -37,8 +37,8 @@ int main(void)
     near(state->throttle, 1.0f);
     near(state->steering, -1.0f);
     near(state->aux4, 0.0f);
-    near(state->aux7, 1.0f);
-    near(state->aux8, 0.5f);
+    near(state->aux7, -1.0f);
+    near(state->aux8, -1.0f);
     assert(state->lighting_rc_valid);
 
     LightingController controller;
@@ -55,12 +55,20 @@ int main(void)
                                false, false, &lights);
     assert(lights.front_duty == 1000u);
     assert(lights.roof_spot_duty == 1000u);
-    assert(lights.roof_mode == ROOF_LIGHT_OFF);
+    assert(lights.roof_mode == ROOF_LIGHT_DRIVE_SYNC);
 
-    input.length = 22u;
+    input.length = 16u;
     assert(vehicle_state_on_msp(&input, 3u));
-    assert(!vehicle_state_get()->lighting_rc_valid);
+    assert(vehicle_state_get()->lighting_rc_valid);
     lighting_controller_render(&controller, 3u, vehicle_state_get(),
+                               false, false, &lights);
+    assert(lights.front_duty == 1000u);
+    assert(lights.roof_spot_duty == 1000u);
+
+    input.length = 14u;
+    assert(vehicle_state_on_msp(&input, 4u));
+    assert(!vehicle_state_get()->lighting_rc_valid);
+    lighting_controller_render(&controller, 4u, vehicle_state_get(),
                                false, false, &lights);
     assert(lights.front_duty == 0u);
     assert(lights.roof_spot_duty == 0u);

@@ -67,6 +67,7 @@ add_executable(f469_ui
     ${CMAKE_SOURCE_DIR}/App/Src/vehicle_state_source.c
     ${CMAKE_SOURCE_DIR}/App/Src/demo_vehicle_state.c
     ${CMAKE_SOURCE_DIR}/App/Src/lighting/lighting_controller.c
+    ${CMAKE_SOURCE_DIR}/App/Src/lighting/f469_vehicle_effects.c
     ${CMAKE_SOURCE_DIR}/App/Src/lighting/lighting_service.c
     ${CMAKE_SOURCE_DIR}/App/Src/led/led_controller.c
 )
