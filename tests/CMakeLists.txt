@@ -6,6 +6,58 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 enable_testing()
 
+add_executable(f469_chain_order_tests test_f469_chain_order.c)
+target_include_directories(f469_chain_order_tests PRIVATE
+    ../boards/stm32f469i_disco/ports ../App/Inc)
+add_test(NAME f469_chain_order_tests COMMAND f469_chain_order_tests)
+
+add_executable(f469_touch_logic_tests
+    test_f469_touch_logic.c
+    ../boards/stm32f469i_disco/ports/f469_touch_logic.c)
+target_include_directories(f469_touch_logic_tests PRIVATE
+    ../boards/stm32f469i_disco/ports)
+add_test(NAME f469_touch_logic_tests COMMAND f469_touch_logic_tests)
+
+add_executable(f469_rc_mapping_tests
+    test_f469_rc_mapping.c
+    ../App/Src/vehicle_state.c
+    ../App/Src/lighting/lighting_controller.c
+    ../App/Src/lighting/f469_vehicle_effects.c
+    ../App/Src/led/led_controller.c)
+target_include_directories(f469_rc_mapping_tests PRIVATE ../App/Inc)
+target_compile_definitions(f469_rc_mapping_tests PRIVATE F469_RC_LAYOUT=1)
+if(NOT MSVC)
+    target_link_libraries(f469_rc_mapping_tests PRIVATE m)
+endif()
+add_test(NAME f469_rc_mapping_tests COMMAND f469_rc_mapping_tests)
+
+add_executable(f469_vehicle_effects_tests
+    test_f469_vehicle_effects.c
+    ../App/Src/lighting/lighting_controller.c
+    ../App/Src/lighting/f469_vehicle_effects.c
+    ../App/Src/led/led_controller.c)
+target_include_directories(f469_vehicle_effects_tests PRIVATE ../App/Inc)
+target_compile_definitions(f469_vehicle_effects_tests PRIVATE F469_RC_LAYOUT=1)
+if(NOT MSVC)
+    target_link_libraries(f469_vehicle_effects_tests PRIVATE m)
+endif()
+add_test(NAME f469_vehicle_effects_tests COMMAND f469_vehicle_effects_tests)
+
+add_executable(two_screen_tests
+    test_two_screen_controller.c
+    ../App/Src/ui/two_screen_controller.c
+    ../App/Src/ui/face_model.c
+)
+target_include_directories(two_screen_tests PRIVATE ../App/Inc)
+add_test(NAME two_screen_tests COMMAND two_screen_tests)
+
+add_executable(overview_model_tests
+    test_overview_model.c
+    ../App/Src/ui/overview_model.c
+)
+target_include_directories(overview_model_tests PRIVATE ../App/Inc)
+add_test(NAME overview_model_tests COMMAND overview_model_tests)
+
 add_executable(unit_tests
     test_main.c
     test_app_time.c
@@ -29,6 +81,7 @@ add_executable(unit_tests
     test_lighting_output_port.c
     test_ws2812_encoder.c
     test_diagnostics.c
+    test_touch_panel.c
     ../App/Src/app_time.c
     ../App/Src/msp/msp_codec.c
     ../App/Src/msp/msp_client.c
@@ -49,6 +102,7 @@ add_executable(unit_tests
     ../App/Src/platform/ws2812_port.c
     ../App/Src/diagnostics.c
     ../App/Src/platform/touch_probe.c
+    ../App/Src/platform/touch_panel.c
 )
 target_include_directories(unit_tests PRIVATE fakes ../App/Inc)
 target_compile_definitions(unit_tests PRIVATE MSP_UART_HOST_TEST=1 WS2812_HOST_TEST=1 TOUCH_PROBE_HOST_TEST=1 DIAGNOSTICS_HOST_TEST=1 LIGHTING_OUTPUT_PORT_HOST_TEST=1)

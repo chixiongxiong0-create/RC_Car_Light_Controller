@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>萌系屏幕表情动画演示</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, "Microsoft YaHei", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 50% 12%, #2d3a45, #11171c 62%); color: #f6f2e8; }
+    main { width: min(940px, 96vw); display: grid; grid-template-columns: minmax(320px, 1fr) minmax(300px, 390px); gap: 34px; align-items: center; padding: 30px 0; }
+    .stage { display: grid; place-items: center; }
+    .device { position: relative; width: min(72vw, 500px); aspect-ratio: 1; padding: 5.5%; border-radius: 22%; background: linear-gradient(145deg, #55636c, #1a2329 46%, #0b0f12); box-shadow: 0 26px 70px #0009, inset 0 2px 2px #fff4; }
+    .screen { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 16%; background: radial-gradient(circle at 50% 28%, #23313a, #10171c 72%); box-shadow: inset 0 0 34px #000c, 0 0 0 2px #77899355; }
+    .screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, #fff0 38%, #fff1 50%, #fff0 62%); }
+    .face { position: absolute; inset: 0; transform-origin: center; }
+    .battery-readout { position: absolute; z-index: 8; top: 7%; left: 50%; display: flex; align-items: center; gap: 9px; translate: -50%; color: #76e6a5; filter: drop-shadow(0 0 5px #39d78555); }
+    .battery-shell { position: relative; width: 80px; height: 29px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; padding: 4px; border: 3px solid currentColor; border-radius: 7px; }
+    .battery-shell::after { content: ""; position: absolute; right: -8px; top: 7px; width: 5px; height: 10px; border-radius: 0 3px 3px 0; background: currentColor; }
+    .battery-segment { border-radius: 2px; background: currentColor; opacity: .12; transition: opacity 180ms ease; }
+    .battery-segment.filled { opacity: 1; }
+    .battery-voltage { min-width: 49px; font-size: clamp(12px, 3.5vw, 18px); font-weight: 800; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+    .battery-readout.low { color: #ff525d; animation: battery-alert 1s ease-in-out infinite; }
+    @keyframes battery-alert { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #ff344a99); } 50% { opacity: .26; filter: drop-shadow(0 0 2px #ff344a33); } }
+    .eyes { position: absolute; left: 50%; top: 45%; display: flex; gap: 8%; width: 84%; justify-content: center; transform: translate(-50%, -50%); }
+    .eye { position: relative; flex: none; overflow: hidden; background: #182128; border: 3px solid #51636d; border-radius: 48% 48% 44% 44%; box-shadow: inset 0 -8px 18px #0007, 0 6px 13px #0006; transition: width 180ms cubic-bezier(.2,.9,.25,1.25), height 180ms cubic-bezier(.2,.9,.25,1.25); }
+    .pupil { position: absolute; left: 50%; top: 50%; border-radius: 50%; background: var(--eye-color, #ffd85a); box-shadow: 0 0 12px color-mix(in srgb, var(--eye-color) 72%, transparent), inset 0 -5px 8px #b8802433; transform: translate(calc(-50% + var(--gaze-x)), calc(-50% + var(--gaze-y))); transition: width 160ms, height 160ms, background 240ms; }
+    .shine { position: absolute; width: 28%; height: 28%; left: 17%; top: 14%; border-radius: 50%; background: #fffbe4; box-shadow: 0 0 8px #fff8; }
+    .lid { position: absolute; z-index: 3; left: -5%; top: -6%; width: 110%; height: var(--lid); border-radius: 0 0 50% 50%; background: #202c34; transition: height 220ms ease; }
+    .brow { position: absolute; z-index: 5; top: -16px; left: 14%; width: 72%; height: 7px; border-radius: 99px; background: #6f828c; transform: translateY(var(--brow)); transition: transform 220ms; opacity: .75; }
+    .mouth { position: absolute; left: 50%; top: 69%; width: 36px; height: 15px; transform: translateX(-50%); border: 5px solid #6f828c; border-top: 0; border-radius: 0 0 30px 30px; transition: all 180ms; }
+    .mouth.soft { width: 24px; height: 8px; opacity: .55; }
+    .mouth.o, .mouth.open { border: 0; background: #091014; border-radius: 50%; width: 20px; height: 25px; box-shadow: inset 0 -5px #ef8e91; }
+    .mouth.open { width: 31px; height: 34px; }
+    .mouth.flat { width: 28px; height: 5px; border: 0; border-radius: 99px; background: #6f828c; }
+    .mouth.wobble { width: 28px; height: 11px; border-bottom-style: dashed; transform: translateX(-50%) rotate(-4deg); }
+    .accent { position: absolute; z-index: 6; opacity: 0; transition: opacity 180ms; }
+    .accent.show { opacity: 1; }
+    .cheek { top: 61%; width: 42px; height: 15px; border-radius: 50%; background: #ff89936b; filter: blur(1px); }
+    .cheek.left { left: 16%; } .cheek.right { right: 16%; }
+    .sweat { right: 12%; top: 22%; width: 16px; height: 25px; border-radius: 70% 30% 60% 40%; background: #70d8ff; transform: rotate(18deg); }
+    .symbol { right: 11%; top: 12%; font-size: clamp(20px, 5vw, 34px); color: #fff1a5; text-shadow: 0 0 10px #ffd85a; }
+    .status { position: absolute; bottom: 7%; left: 50%; translate: -50%; color: #81939c; font-size: clamp(10px, 2.4vw, 14px); letter-spacing: .14em; text-transform: uppercase; }
+    .panel { padding: 25px; border: 1px solid #ffffff17; border-radius: 24px; background: #182128d9; box-shadow: 0 18px 50px #0005; backdrop-filter: blur(16px); }
+    h1 { margin: 0 0 7px; font-size: 25px; } .lede { margin: 0 0 22px; color: #99aab3; line-height: 1.6; }
+    .control { margin: 18px 0; } .control label { display: flex; justify-content: space-between; margin-bottom: 9px; color: #cdd6da; font-size: 14px; }
+    input[type="range"] { width: 100%; accent-color: #ffd85a; }
+    .moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    button { border: 1px solid #ffffff16; border-radius: 12px; padding: 10px 7px; background: #26323a; color: #dbe3e6; cursor: pointer; transition: .18s ease; }
+    button:hover { translate: 0 -2px; border-color: #ffd85a66; } button.active { background: #ffd85a; color: #322a18; border-color: transparent; font-weight: 700; }
+    .auto { width: 100%; margin-top: 18px; background: #35444d; }
+    .auto.active { background: #74d7ae; color: #10231b; }
+    @media (max-width: 760px) { main { grid-template-columns: 1fr; } .device { width: min(88vw, 440px); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="stage" aria-label="320乘320屏幕动画预览">
+      <div class="device">
+        <div class="screen">
+          <div class="battery-readout" id="batteryReadout" aria-label="电池状态">
+            <div class="battery-shell" id="batteryShell">
+              <i class="battery-segment"></i><i class="battery-segment"></i><i class="battery-segment"></i>
+              <i class="battery-segment"></i><i class="battery-segment"></i><i class="battery-segment"></i>
+            </div>
+            <span class="battery-voltage" id="batteryVoltage">11.7V</span>
+          </div>
+          <div class="face" id="face">
+            <div class="eyes">
+              <div class="eye"><i class="brow"></i><i class="lid"></i><i class="pupil"><i class="shine"></i></i></div>
+              <div class="eye"><i class="brow"></i><i class="lid"></i><i class="pupil"><i class="shine"></i></i></div>
+            </div>
+            <i class="accent cheek left"></i><i class="accent cheek right"></i>
+            <i class="accent sweat"></i><i class="accent symbol" id="symbol"></i>
+            <i class="mouth soft" id="mouth"></i>
+          </div>
+          <span class="status" id="status">待机 · IDLE</span>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <h1>萌系表情实验室</h1>
+      <p class="lede">模拟遥控器输入，观察眼睛放大、视线跟随和弹性晃动。</p>
+      <div class="control"><label for="throttle"><span>加速 / 油门</span><output id="throttleOut">0%</output></label><input id="throttle" type="range" min="-100" max="100" value="0"></div>
+      <div class="control"><label for="steering"><span>转向 / 视线</span><output id="steeringOut">居中</output></label><input id="steering" type="range" min="-100" max="100" value="0"></div>
+      <div class="control"><label for="voltage"><span>3S 电池电压</span><output id="voltageOut">11.7V · 61% · 4格</output></label><input id="voltage" type="range" min="9" max="12.6" step="0.1" value="11.7"></div>
+      <label>心情</label>
+      <div class="moods" id="moods">
+        <button class="active" data-mood="idle">🙂 待机</button><button data-mood="happy">😊 开心</button><button data-mood="curious">🧐 好奇</button>
+        <button data-mood="excited">🤩 兴奋</button><button data-mood="nervous">😅 紧张</button><button data-mood="sleepy">😴 困倦</button>
+        <button data-mood="reverse">↩️ 倒车</button><button data-mood="lowBattery">🪫 低电</button><button data-mood="linkLost">📡 失联</button>
+      </div>
+      <button class="auto" id="auto">▶ 自动演示</button>
+    </section>
+  </main>
+  <script type="module">
+    import { batteryFromVoltage, computeFace } from './face-model.mjs';
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+    const labels = { idle:'待机 · IDLE', happy:'开心 · HAPPY', curious:'好奇 · CURIOUS', excited:'兴奋 · EXCITED', nervous:'紧张 · NERVOUS', sleepy:'困倦 · SLEEPY', reverse:'倒车 · REVERSE', lowBattery:'低电量 · LOW BATTERY', linkLost:'失联 · LINK LOST' };
+    const symbols = { spark:'✦', zzz:'Zᶻ', battery:'▱', signal:'⌁' };
+    const state = { mood:'idle', throttle:0, steering:0, voltage:11.7, auto:false };
+    const start = performance.now();
+
+    function render(now) {
+      if (state.auto) {
+        const t = (now - start) / 1000;
+        state.throttle = (Math.sin(t * .72) + 1) / 2;
+        state.steering = Math.sin(t * .48);
+        $('#throttle').value = Math.round(state.throttle * 100);
+        $('#steering').value = Math.round(state.steering * 100);
+      }
+      const face = computeFace({ ...state, time: now });
+      const battery = batteryFromVoltage(state.voltage, 3);
+      $('#face').style.transform = `translate(${face.shakeX}px, ${face.shakeY}px) rotate(${face.tilt}deg)`;
+      $$('.eye').forEach((eye) => { eye.style.width = `${face.eyeSize.width/3.2}cqw`; eye.style.height = `${face.eyeSize.height/3.2}cqw`; });
+      $$('.pupil').forEach((pupil) => { pupil.style.width = pupil.style.height = `${face.pupilSize/3.2}cqw`; });
+      $('.screen').style.containerType = 'size';
+      $('.screen').style.setProperty('--eye-color', face.tint);
+      $('.screen').style.setProperty('--gaze-x', `${face.gazeX/3.2}cqw`);
+      $('.screen').style.setProperty('--gaze-y', `${face.gazeY/3.2}cqw`);
+      $('.screen').style.setProperty('--lid', `${face.lid}%`);
+      $('.screen').style.setProperty('--brow', `${face.brow/3.2}cqw`);
+      $('#mouth').className = `mouth ${face.mouth}`;
+      $$('.accent').forEach((el) => el.classList.remove('show'));
+      if (face.accent === 'cheek') $$('.cheek').forEach((el) => el.classList.add('show'));
+      if (face.accent === 'sweat') $('.sweat').classList.add('show');
+      if (symbols[face.accent]) { $('#symbol').textContent = symbols[face.accent]; $('#symbol').classList.add('show'); }
+      $('#status').textContent = labels[state.mood];
+      $$('.battery-segment').forEach((segment, index) => segment.classList.toggle('filled', index < battery.segments));
+      $('#batteryReadout').classList.toggle('low', battery.low);
+      $('#batteryReadout').setAttribute('aria-label', `电池 ${battery.percent}%，${state.voltage.toFixed(1)}伏`);
+      $('#batteryVoltage').textContent = `${state.voltage.toFixed(1)}V`;
+      $('#throttleOut').textContent = `${Math.round(state.throttle * 100)}%`;
+      $('#steeringOut').textContent = Math.abs(state.steering) < .05 ? '居中' : `${state.steering < 0 ? '左' : '右'} ${Math.round(Math.abs(state.steering) * 100)}%`;
+      $('#voltageOut').textContent = `${state.voltage.toFixed(1)}V · ${battery.percent}% · ${battery.segments}格`;
+      requestAnimationFrame(render);
+    }
+    $('#throttle').addEventListener('input', (e) => { state.throttle = e.target.value / 100; state.auto = false; $('#auto').classList.remove('active'); });
+    $('#steering').addEventListener('input', (e) => { state.steering = e.target.value / 100; state.auto = false; $('#auto').classList.remove('active'); });
+    $('#voltage').addEventListener('input', (e) => { state.voltage = Number(e.target.value); });
+    $('#moods').addEventListener('click', (e) => { const button = e.target.closest('[data-mood]'); if (!button) return; state.mood = button.dataset.mood; $$('[data-mood]').forEach((el) => el.classList.toggle('active', el === button)); });
+    $('#auto').addEventListener('click', () => { state.auto = !state.auto; $('#auto').classList.toggle('active', state.auto); $('#auto').textContent = state.auto ? '■ 停止自动演示' : '▶ 自动演示'; });
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

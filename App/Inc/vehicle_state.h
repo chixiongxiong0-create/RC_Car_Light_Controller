@@ -16,10 +16,12 @@ typedef struct {
     float throttle;
     float steering;
     float aux_page;
+    float aux4;
     float aux6;
     float aux7;
     float aux8;
     float aux9;
+    float rgb_brightness;
     float roll_deg;
     float pitch_deg;
     float heading_deg;
@@ -35,6 +37,13 @@ typedef struct {
     uint32_t last_rc_ms;
     uint32_t last_lighting_rc_ms;
     uint32_t last_attitude_ms;
+    uint32_t last_analog_ms;
+    uint32_t last_gps_ms;
+    uint32_t last_status_ms;
+    bool rc_valid;
+    bool attitude_valid;
+    bool gps_valid;
+    bool status_valid;
 } VehicleState;
 
 void vehicle_state_init(void);

@@ -112,6 +112,16 @@ void input_manager_set_touch_page(UiPage page)
     }
 }
 
+void input_manager_on_swipe(UiSwipe direction)
+{
+    if (!touch_available) return;
+    if (direction == UI_SWIPE_LEFT && current_page < UI_PAGE_SHOWCASE) {
+        input_manager_set_touch_page((UiPage)((unsigned)current_page + 1u));
+    } else if (direction == UI_SWIPE_RIGHT && current_page > UI_PAGE_DASHBOARD) {
+        input_manager_set_touch_page((UiPage)((unsigned)current_page - 1u));
+    }
+}
+
 void input_manager_tick(uint32_t now_ms, const VehicleState *state)
 {
     if (raw_button != stable_button &&
@@ -134,7 +144,7 @@ void input_manager_tick(uint32_t now_ms, const VehicleState *state)
         }
     }
 
-    if (touch_pending && !aux_authoritative) {
+    if (touch_pending) {
         current_page = touch_page;
     }
     touch_pending = false;

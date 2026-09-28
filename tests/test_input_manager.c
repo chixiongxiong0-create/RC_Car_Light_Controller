@@ -42,7 +42,7 @@ static void test_aux_authority_and_link_fallback(void)
     input_manager_set_touch_available(true);
     input_manager_set_touch_page(UI_PAGE_FACE);
     input_manager_tick(2400u, &state);
-    assert(input_manager_page() == UI_PAGE_SHOWCASE);
+    assert(input_manager_page() == UI_PAGE_FACE);
 
     state.aux_page = -0.5f;
     input_manager_tick(2410u, &state);
@@ -152,6 +152,25 @@ static void test_touch_availability_and_aux_priority(void)
     input_manager_set_touch_page(UI_PAGE_DASHBOARD);
     tick_aux(3u, 0.5f);
     assert(input_manager_page() == UI_PAGE_SHOWCASE);
+
+    input_manager_on_swipe(UI_SWIPE_RIGHT);
+    tick_aux(4u, 0.5f);
+    assert(input_manager_page() == UI_PAGE_FACE);
+    input_manager_on_swipe(UI_SWIPE_LEFT);
+    tick_aux(5u, 0.5f);
+    assert(input_manager_page() == UI_PAGE_SHOWCASE);
+    input_manager_on_swipe(UI_SWIPE_LEFT);
+    tick_aux(6u, 0.5f);
+    assert(input_manager_page() == UI_PAGE_SHOWCASE);
+
+    input_manager_on_swipe(UI_SWIPE_RIGHT);
+    tick_aux(7u, -0.5f);
+    assert(input_manager_page() == UI_PAGE_DASHBOARD);
+
+    input_manager_set_touch_available(false);
+    input_manager_on_swipe(UI_SWIPE_LEFT);
+    tick_aux(8u, -0.5f);
+    assert(input_manager_page() == UI_PAGE_DASHBOARD);
 }
 
 static void test_wrap_safe_debounce_and_press_duration(void)

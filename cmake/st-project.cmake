@@ -113,6 +113,7 @@ target_sources(
     "App\\Src\\ui\\dashboard_format.c"
     "App\\Src\\diagnostics.c"
     "App\\Src\\platform\\touch_probe.c"
+    "App\\Src\\platform\\touch_panel.c"
     "Core\\Src\\iwdg.c"
     "App\\Src\\led\\led_controller.c"
     "App\\Src\\lighting\\lighting_controller.c"

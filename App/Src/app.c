@@ -85,6 +85,7 @@ static void lighting_tick(uint32_t now_ms, const VehicleState *real_state,
 
 void App_Init(void)
 {
+  TouchProbeResult touch;
   lighting_output_port_init();
   lighting_service_init(&lighting_service);
   MX_USART3_UART_Init();
@@ -95,12 +96,15 @@ void App_Init(void)
   low_battery_policy_init(&battery_policy, APP_BATTERY_CELL_COUNT);
   msp_client_init(&client, write_msp, on_msp_frame, NULL);
   diagnostics_init();
-  diagnostics_set_touch_available(touch_probe_boot() != TOUCH_NONE);
+  touch = touch_probe_boot_detect();
+  diagnostics_set_touch_available(touch.controller != TOUCH_NONE);
   ws2812_port_init();
   input_manager_set_touch_available(diagnostics_get()->touch_available);
 #ifdef BSP_CONFIG_SEEDSTUDIO
   ui_ready = lvgl_port_init();
   if (ui_ready) {
+    diagnostics_set_touch_available(lvgl_port_attach_touch(touch));
+    input_manager_set_touch_available(diagnostics_get()->touch_available);
     ui_app_init();
   }
 #endif

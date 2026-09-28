@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>车况表情演示</title>
+<style>
+:root{color-scheme:dark;--bg:#091218;--panel:#111f27;--line:#263b46;--muted:#8ba0aa;--white:#f3f7f8;--yellow:#ffd34e;--red:#ff253e;--cyan:#67d9e6}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 22%,#1a3039 0,#0b171e 50%,#060c10 100%);font:16px/1.45 system-ui,"Microsoft YaHei",sans-serif;color:var(--white);display:grid;place-items:center;padding:20px}
+.app{width:min(100%,960px);border:1px solid #29404b;background:linear-gradient(145deg,#102029ee,#0a141aee);border-radius:24px;box-shadow:0 28px 90px #0009;overflow:hidden}.top{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--line)}.brand{font-size:13px;letter-spacing:.18em;color:#91a9b4}.badge{border:1px solid #36515d;color:var(--cyan);border-radius:99px;padding:5px 12px;font-size:12px;letter-spacing:.08em}.stage{position:relative;display:grid;place-items:center;min-height:410px;background:radial-gradient(ellipse at 50% 55%,#192c34 0,#101d24 48%,#0c171d 100%)}svg{width:min(100%,800px);height:auto;overflow:visible}.eye-shell{fill:#1b3039;stroke:#66808a;stroke-width:4;transition:all .45s cubic-bezier(.2,.8,.2,1);transform-box:fill-box;transform-origin:center}.pupil{fill:var(--yellow);transition:fill .3s,transform .45s cubic-bezier(.2,.8,.2,1)}.brow{fill:#a62435;opacity:0;transition:opacity .2s,transform .35s;transform-box:fill-box;transform-origin:center}.mouth{fill:#8ba0aa;transition:all .3s}.reverse-only{opacity:0;transition:opacity .3s}.face{transform-origin:400px 240px;transition:transform .4s cubic-bezier(.2,.8,.2,1)}.battery{position:absolute;left:clamp(18px,7%,62px);bottom:24px;display:flex;align-items:center;gap:12px;color:#b8e879;font-weight:650}.battery-shape{width:66px;height:27px;border:2px solid currentColor;border-radius:5px;padding:4px;display:flex;gap:3px;position:relative}.battery-shape:after{content:"";position:absolute;right:-7px;top:6px;width:4px;height:11px;border-radius:0 2px 2px 0;background:currentColor}.battery-shape i{flex:1;border-radius:2px;background:currentColor}.state-text{position:absolute;right:clamp(18px,7%,62px);bottom:28px;text-align:right}.state-text strong{display:block;font-size:13px;letter-spacing:.17em;color:var(--yellow)}.state-text span{font-size:12px;color:var(--muted)}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:20px 24px 24px;border-top:1px solid var(--line)}.group-title{font-size:11px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin:0 0 10px}.buttons{display:flex;gap:8px;flex-wrap:wrap}.buttons button{border:1px solid #344b57;background:#16252d;color:#c5d3d8;border-radius:10px;padding:9px 13px;font:inherit;font-size:13px;cursor:pointer;transition:.18s}.buttons button:hover{border-color:#7ea3b1}.buttons button.active{background:#493a18;border-color:#e7bc48;color:#ffe28a;box-shadow:0 0 20px #ffd34e16}.slider-wrap{display:flex;align-items:center;gap:12px;color:#a8bbc3;font-size:13px}.slider-wrap input{width:100%;accent-color:var(--yellow)}.value{min-width:42px;text-align:right;color:#fff;font-variant-numeric:tabular-nums}.hint{grid-column:1/-1;text-align:center;color:#708791;font-size:12px;margin:-4px 0 0}
+/* Reverse: rearward gaze and compressed, oblique profile. */
+.app[data-mode="reverse"] .face{transform:translateX(-10px) rotate(-5deg)}.app[data-mode="reverse"] .eye-left{transform:translateX(20px) scale(.72,.88) rotate(-13deg)}.app[data-mode="reverse"] .eye-right{transform:translateX(-35px) scale(.9,.92) rotate(-13deg)}.app[data-mode="reverse"] .pupil-left,.app[data-mode="reverse"] .pupil-right{transform:translate(-24px,2px);fill:#f5f7f5}.app[data-mode="reverse"] .mouth{transform:translateX(-21px);rx:3}.app[data-mode="reverse"] .reverse-only{opacity:1}
+/* Lazy idle: long glances with soft pauses. */
+.app[data-mode="idle"] .pupil{animation:lazy-look 5.2s ease-in-out infinite}.app[data-mode="idle"] .pupil-right{animation-delay:.15s}@keyframes lazy-look{0%,18%,44%,62%,100%{transform:translate(-17px,0)}31%,75%{transform:translate(17px,0)}}
+/* Focused: red eyes, sharply lowered inner brows and an exaggerated snarl. */
+.app[data-mode="fast"] .pupil{fill:var(--red);filter:drop-shadow(0 0 10px #ff253eaa);transform:scale(1.18)}.app[data-mode="fast"] .brow{opacity:1}.app[data-mode="fast"] .brow-left{transform:rotate(15deg) translateY(8px)}.app[data-mode="fast"] .brow-right{transform:rotate(-15deg) translateY(8px)}.app[data-mode="fast"] .eye-shell{fill:#281b22;stroke:#a64852}.app[data-mode="fast"] .mouth{fill:#ff4254;transform:scale(1.25,1.5);transform-origin:center}.app[data-mode="left"],.app[data-mode="right"]{--turn:1}
+.app[data-mode="left"] .face{transform:translate(-18px,8px) rotate(-5deg)}.app[data-mode="left"] .pupil{transform:translate(-22px,0)}.app[data-mode="right"] .face{transform:translate(18px,8px) rotate(5deg)}.app[data-mode="right"] .pupil{transform:translate(22px,0)}
+@media(max-width:650px){body{padding:10px}.app{border-radius:16px}.top{padding:14px 16px}.stage{min-height:290px}.controls{grid-template-columns:1fr;padding:17px}.hint{grid-column:auto}.state-text{bottom:17px}.battery{bottom:15px}.stage svg{width:115%}}
+</style>
+</head>
+<body>
+<main class="app" id="app" data-mode="idle">
+  <header class="top"><div class="brand">F469 · VEHICLE FACE PREVIEW</div><div class="badge">交互演示</div></header>
+  <section class="stage" aria-label="车况表情">
+    <svg viewBox="0 0 800 416" role="img" aria-label="车况表情动画">
+      <defs><radialGradient id="glow"><stop stop-color="#223942" stop-opacity=".52"/><stop offset="1" stop-color="#0e1a20" stop-opacity="0"/></radialGradient></defs>
+      <ellipse cx="400" cy="218" rx="300" ry="195" fill="url(#glow)"/>
+      <g class="face">
+        <g class="eye-left">
+          <ellipse class="eye-shell" cx="282" cy="205" rx="83" ry="85"/>
+          <circle class="pupil pupil-left" cx="282" cy="205" r="34"/>
+          <path class="brow brow-left" d="M198 112 Q240 116 360 137 L355 157 Q270 137 198 132Z"/>
+        </g>
+        <g class="eye-right">
+          <ellipse class="eye-shell" cx="518" cy="205" rx="83" ry="85"/>
+          <circle class="pupil pupil-right" cx="518" cy="205" r="34"/>
+          <path class="brow brow-right" d="M602 112 Q560 116 440 137 L445 157 Q530 137 602 132Z"/>
+        </g>
+        <path class="reverse-only" d="M370 130 Q402 111 428 129" fill="none" stroke="#71858F" stroke-width="7" stroke-linecap="round"/>
+        <path class="mouth" d="M374 315 Q400 319 426 315" fill="none" stroke="#8ba0aa" stroke-width="9" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <div class="battery"><div class="battery-shape"><i></i><i></i><i></i><i></i><i></i></div><span>78%</span></div>
+    <div class="state-text"><strong id="stateName">CALM · IDLE</strong><span id="stateHint">懒散地左右张望</span></div>
+  </section>
+  <section class="controls">
+    <div><p class="group-title">选择车况 / 转向</p><div class="buttons" id="modes">
+      <button data-mode="reverse">倒车</button><button class="active" data-mode="idle">停车 / 低速</button><button data-mode="fast">高速</button><button data-mode="left">左转</button><button data-mode="right">右转</button>
+    </div></div>
+    <div><p class="group-title">油门 · 演示</p><div class="slider-wrap"><span>0%</span><input id="throttle" type="range" min="0" max="100" value="12"><span>100%</span><span class="value" id="throttleValue">12%</span></div><p class="group-title" style="margin-top:18px">转向 · 演示</p><div class="slider-wrap"><span>左</span><input id="steering" type="range" min="-100" max="100" value="0"><span>右</span><span class="value" id="steeringValue">0</span></div></div>
+    <p class="hint">点击车况按钮，或拖动油门与转向滑条预览表情变化。此页面为视觉概念演示。</p>
+  </section>
+</main>
+<script>
+const app=document.getElementById('app'), name=document.getElementById('stateName'), hint=document.getElementById('stateHint');
+const labels={reverse:['REVERSE · PROFILE','斜眼回望，脸转向车尾'],idle:['CALM · IDLE','懒散地左右张望'],fast:['FOCUSED · ANGRY','红眼紧眉，凶狠加速'],left:['TURN · LEFT','向左探头看弯道'],right:['TURN · RIGHT','向右探头看弯道']};
+function setMode(mode){app.dataset.mode=mode;document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));name.textContent=labels[mode][0];hint.textContent=labels[mode][1]}
+document.getElementById('modes').addEventListener('click',e=>{const b=e.target.closest('button[data-mode]');if(b)setMode(b.dataset.mode)});
+document.getElementById('throttle').addEventListener('input',e=>{const v=+e.target.value;document.getElementById('throttleValue').textContent=v+'%';if(v>=55)setMode('fast');else if(v<55&&app.dataset.mode==='fast')setMode('idle')});
+document.getElementById('steering').addEventListener('input',e=>{const v=+e.target.value;document.getElementById('steeringValue').textContent=(v>0?'+':'')+v;if(Math.abs(v)>22)setMode(v<0?'left':'right');else if(app.dataset.mode==='left'||app.dataset.mode==='right')setMode(+document.getElementById('throttle').value>=55?'fast':'idle')});
+</script>
+</body>
+</html>
+

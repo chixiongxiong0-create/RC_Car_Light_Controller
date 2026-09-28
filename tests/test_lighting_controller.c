@@ -178,20 +178,33 @@ static void test_roof_animation_spans_two_independent_groups(void)
     assert_current_accounted(&frame);
 }
 
-static void test_duties_clamp_and_loss_warning_preserves_roof_black(void)
+static void test_aux6_three_position_lights_and_loss_warning(void)
 {
     const LedRgb loss_amber = {32u, 8u, 0u};
     LightingController controller;
     LightingFrame frame;
     VehicleState state = lighting_state();
+    const struct {
+        float aux6;
+        uint16_t front_duty;
+        uint16_t roof_spot_duty;
+    } ranges[] = {
+        {-1.0f, 0u, 0u},
+        {-0.2f, 1000u, 0u},
+        {0.0f, 1000u, 0u},
+        {0.8f, 1000u, 0u},
+        {0.81f, 1000u, 1000u},
+    };
 
     lighting_controller_init(&controller);
-    state.aux6 = 2.0f;
-    state.aux7 = -2.0f;
-    lighting_controller_render(&controller, 0u, &state, false, false, &frame);
-    assert(frame.front_duty == 1000u);
-    assert(frame.roof_spot_duty == 0u);
-    assert_current_accounted(&frame);
+    for (size_t i = 0u; i < sizeof ranges / sizeof ranges[0]; ++i) {
+        state.aux6 = ranges[i].aux6;
+        lighting_controller_render(&controller, 0u, &state, false, false,
+                                   &frame);
+        assert(frame.front_duty == ranges[i].front_duty);
+        assert(frame.roof_spot_duty == ranges[i].roof_spot_duty);
+        assert_current_accounted(&frame);
+    }
 
     state.lighting_rc_valid = false;
     lighting_controller_render(&controller, 0u, &state, false, false, &frame);
@@ -244,7 +257,7 @@ static void test_fail_safe_duties_and_bounds(void)
     state.aux7 = 1.0f;
     lighting_controller_render(&controller, 0u, &state, false, false, &frame);
     assert(frame.front_duty == 0u);
-    assert(frame.roof_spot_duty == 1000u);
+    assert(frame.roof_spot_duty == 0u);
     assert_rear_side(&frame, 0u, (LedRgb){120u, 0u, 0u},
                      (LedRgb){40u, 0u, 0u}, (LedRgb){40u, 0u, 0u},
                      (LedRgb){70u, 0u, 0u});
@@ -254,14 +267,14 @@ static void test_fail_safe_duties_and_bounds(void)
     state.aux6 = 0.0f;
     state.aux7 = 0.0f;
     lighting_controller_render(&controller, 1u, &state, false, false, &frame);
-    assert(frame.front_duty == 500u);
-    assert(frame.roof_spot_duty == 500u);
+    assert(frame.front_duty == 1000u);
+    assert(frame.roof_spot_duty == 0u);
 
-    state.aux6 = 2.0f;
+    state.aux6 = 1.0f;
     state.aux7 = -2.0f;
     lighting_controller_render(&controller, 2u, &state, false, false, &frame);
     assert(frame.front_duty == 1000u);
-    assert(frame.roof_spot_duty == 0u);
+    assert(frame.roof_spot_duty == 1000u);
 
     lighting_controller_init(&startup_controller);
     for (size_t i = 0u; i < sizeof invalid_links / sizeof invalid_links[0]; ++i) {
@@ -933,7 +946,7 @@ void test_lighting_controller(void)
     test_four_group_contract();
     test_startup_frame_is_black_before_valid_lighting_rc();
     test_roof_animation_spans_two_independent_groups();
-    test_duties_clamp_and_loss_warning_preserves_roof_black();
+    test_aux6_three_position_lights_and_loss_warning();
     test_warning_overrides_both_rear_groups();
     test_fail_safe_duties_and_bounds();
     test_startup_black_and_post_valid_lighting_loss();

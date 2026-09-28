@@ -8,6 +8,7 @@
 #include "lvgl.h"
 #include "platform/display_metrics.h"
 #include "platform/lvgl_port_math.h"
+#include "platform/touch_panel.h"
 
 __attribute__((section(".ltdc_scanout"), aligned(32)))
 static uint16_t scanout[PHYSICAL_WIDTH * PHYSICAL_HEIGHT];
@@ -22,6 +23,21 @@ static lv_display_t *display;
 static uint32_t last_tick_ms;
 static bool tick_started;
 static DisplayMetrics metrics;
+static TouchProbeResult touch_controller;
+static TouchSample touch_sample;
+
+static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
+{
+    (void)indev;
+    if (touch_panel_poll_hal(touch_controller, &touch_sample) ==
+        TOUCH_POLL_IO_ERROR) {
+        touch_sample.pressed = false;
+    }
+    data->point.x = touch_sample.x;
+    data->point.y = touch_sample.y;
+    data->state = touch_sample.pressed ? LV_INDEV_STATE_PRESSED :
+                                  LV_INDEV_STATE_RELEASED;
+}
 
 static void clean_scanout_cache_for_rotated_area(const lv_area_t *area)
 {
@@ -75,6 +91,21 @@ bool lvgl_port_init(void)
     last_tick_ms = HAL_GetTick();
     display_metrics_init(&metrics, last_tick_ms);
     tick_started = true;
+    return true;
+}
+
+bool lvgl_port_attach_touch(TouchProbeResult controller)
+{
+    if (display == NULL || controller.controller == TOUCH_NONE) return false;
+    lv_indev_t *indev = lv_indev_create();
+    if (indev == NULL) return false;
+    touch_controller = controller;
+    touch_sample = (TouchSample){0};
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, touch_read_cb);
+    lv_indev_set_gesture_min_distance(indev, 45u);
+    lv_indev_set_gesture_min_velocity(indev, 3u);
+    lv_timer_set_period(lv_indev_get_read_timer(indev), 20u);
     return true;
 }
 

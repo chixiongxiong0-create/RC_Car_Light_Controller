@@ -8,8 +8,8 @@ The controller requires a complete 13-channel (26-byte) `MSP_RC` frame. Under th
 
 | MSP channel | Function | Default behavior |
 | --- | --- | --- |
-| 9 (AUX6) | front 12 V lamps | brightness/duty request |
-| 10 (AUX7) | roof 12 V spotlights | brightness/duty request |
+| 9 (AUX6) | front lamps and roof 12 V spotlights | <1400 all off; 1400–1900 front only; >1900 front and spotlights |
+| 10 (AUX7) | reserved | not used for lighting control |
 | 11 (AUX8) | roof WS2812 mode | selects one of eight stable mode bands |
 | 12 (AUX9) | effect parameter | continuous brightness or animation-speed parameter |
 

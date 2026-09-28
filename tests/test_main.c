@@ -19,6 +19,7 @@ void test_lighting_service(void);
 void test_lighting_output_port(void);
 void test_ws2812_encoder(void);
 void test_diagnostics(void);
+void test_touch_panel(void);
 
 int main(void)
 {
@@ -41,6 +42,7 @@ int main(void)
     test_lighting_output_port();
     test_ws2812_encoder();
     test_diagnostics();
+    test_touch_panel();
     puts("all tests passed");
     return 0;
 }

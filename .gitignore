@@ -5,3 +5,6 @@ build-host*/
 .settings/
 .ai/
 .worktrees/
+build-f469*/
+build-f469*.log
+.superpowers/sdd/

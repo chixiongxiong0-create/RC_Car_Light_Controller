@@ -2,10 +2,10 @@
 
 #include "led/led_controller.h"
 
-/* Set to the vehicle battery's series cell count (2..6) before flashing.
- * Zero means unknown: low-battery expressions are deliberately disabled. */
+/* Vehicle battery series cell count. This hardware uses a 3S pack.
+ * Override with 0 only when unknown; low-battery expressions are then disabled. */
 #ifndef APP_BATTERY_CELL_COUNT
-#define APP_BATTERY_CELL_COUNT 0
+#define APP_BATTERY_CELL_COUNT 3
 #endif
 
 #ifndef APP_LED_PIXEL_COUNT
