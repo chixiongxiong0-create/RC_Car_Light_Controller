@@ -82,7 +82,7 @@ bool f469_ws2812_init(void)
     if (HAL_TIM_PWM_ConfigChannel(&timer, &channel, TIM_CHANNEL_1) != HAL_OK ||
         HAL_TIM_PWM_ConfigChannel(&timer, &channel, TIM_CHANNEL_2) != HAL_OK) return false;
     TIM3->CCMR1 |= TIM_CCMR1_OC1PE | TIM_CCMR1_OC2PE;
-    last_submit = UINT32_MAX - 33u;
+    last_submit = UINT32_MAX - 15u;
     return true;
 }
 static void encode_byte(uint8_t value, unsigned offset, unsigned channel)
@@ -120,7 +120,7 @@ bool f469_ws2812_submit(uint32_t now_ms, const Ws2812Frame *frame)
 {
     if (frame == NULL) return false;
     if (busy) { ++busy_drops; return false; }
-    if ((uint32_t)(now_ms - last_submit) < 34u) return false;
+    if ((uint32_t)(now_ms - last_submit) < 16u) return false;
     encode_frame(frame);
     pin_timer(GPIO_PIN_4);
     pin_timer(GPIO_PIN_5);

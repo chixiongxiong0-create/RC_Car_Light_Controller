@@ -21,6 +21,7 @@ typedef struct {
     float aux7;
     float aux8;
     float aux9;
+    float rgb_brightness;
     float roll_deg;
     float pitch_deg;
     float heading_deg;

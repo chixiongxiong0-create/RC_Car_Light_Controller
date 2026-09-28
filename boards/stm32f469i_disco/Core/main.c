@@ -107,7 +107,7 @@ int main(void)
         }
         last_button_pressed = pressed;
 
-        if ((uint32_t)(now_ms - last_lighting_ms) >= 34u) {
+        if ((uint32_t)(now_ms - last_lighting_ms) >= 16u) {
             diagnostics.led_current_ma = lighting_service_tick(
                 &lights, now_ms, real, low_battery,
                 diagnostics.state == HEALTH_FAULT,

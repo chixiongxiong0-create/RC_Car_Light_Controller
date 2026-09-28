@@ -1,8 +1,30 @@
-# Wio Lite AI RC Crawler UI
+# RC Car UI and Lighting Controller
 
-## STM32F469I-DISCO 新版
+本项目为 RC 攀爬车提供车况显示和灯光控制。当前有两套硬件固件：原版 Wio Lite AI（STM32H725）和替代方案 STM32F469I-DISCO（STM32F469NI）。UI 通过 UART/MSP 读取飞控状态，不接管 ELRS、INAV 或电机控制。
 
-已新增 [STM32F469I-DISCO 界面与灯光固件](boards/stm32f469i_disco/README.md)，用于替换本项目的 Wio 显示与灯光板。它只有表情、信息两个触摸主界面，保留 MSP、两路 12 V 灯控制和两条 WS2812 数据链。下面内容为原 Wio 版本说明。MB1189 B-01 的引脚和实车功能仍需按 [上板验收记录](boards/stm32f469i_disco/validation/acceptance.md) 检验。
+## STM32F469I-DISCO 替代方案
+
+STM32F469I-DISCO 固件用于替换原 Wio 板上的显示、触摸和界面，同时保留 MSP 状态读取、两路 12 V 灯开关及两条 WS2812 数据输出。界面只有「表情」和「信息」两个主界面；表情随车况变化，信息页提供总览和详细诊断。
+
+灯效包含尾灯和左右侧灯动画，速度随油门变化；RC11 调节两条 WS2812 灯带的总亮度，RC8（AUX4）三段控制两路 12 V 灯，RC2 为油门，RC3 为转向。
+
+| CN12 | STM32F469I-DISCO 信号 | 连接 |
+| --- | --- | --- |
+| 2 | GND | 飞控、灯带电源及电平转换器共信号地 |
+| 5 | PB4 / TIM3_CH1 | 74AHCT125 A 输入 → WS2812 尾灯链（4+4 颗） |
+| 6 | PC6 / USART6_TX | 飞控 UART RX（MSP，115200 8N1） |
+| 8 | PC7 / USART6_RX | 飞控 UART TX（MSP，115200 8N1） |
+| 9 | PB5 / TIM3_CH2 | 74AHCT125 B 输入 → WS2812 侧灯链（8+8 颗） |
+| 13 | PC13 / GPIO | 第一路 12 V 灯 MOSFET 栅极驱动 |
+| 14 | PC1 / GPIO | 第二路 12 V 灯 MOSFET 栅极驱动 |
+
+WS2812 灯带须使用独立、带保护的 5 V 电源，并通过 74AHCT125 等器件把板上 3.3 V 数据升至 5 V；开发板、转换器和灯带电源共信号地。12 V 灯需经 MOSFET 和保险丝驱动，不能接到开发板 GPIO 或 CN12。不要从 CN12 的 3.3 V 引脚给灯带供电。**MB1189 B-01 的公开原理图尚未找到对应版本**；焊接前请对照实板丝印和 [验收记录](boards/stm32f469i_disco/validation/acceptance.md)核实 CN12 脚位。
+
+完整操作步骤、板上设置、接线和验收记录见 [STM32F469I-DISCO 文档](boards/stm32f469i_disco/README.md) 与 [CN12 接线表](boards/stm32f469i_disco/pin-map.md)。
+
+## 原版 Wio Lite AI 固件
+
+以下内容说明原 Wio Lite AI（STM32H725）版本。它通过独立 UART 向 INAV 查询 MSP 状态，在 320×240 横屏上呈现越野仪表，并根据车辆状态驱动前灯、车顶灯和四组独立 WS2812。若使用 STM32F469I-DISCO，请以上面的 F469 文档为准。
 
 Wio Lite AI（STM32H725）攀爬车车壳装饰 UI 与灯光固件。它通过独立 UART 向 INAV 查询 MSP 状态，在 320×240 横屏上呈现硬派越野仪表，并根据车辆状态驱动前灯、车顶灯和四组独立 WS2812。UI 板不参与 ELRS/INAV 的遥控或动力控制链路。
 

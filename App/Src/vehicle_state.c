@@ -79,6 +79,7 @@ static void clear_lighting_rc(void)
     state.aux7 = -1.0f;
     state.aux8 = -1.0f;
     state.aux9 = -1.0f;
+    state.rgb_brightness = 1.0f;
     state.lighting_rc_valid = false;
 }
 
@@ -134,6 +135,7 @@ void vehicle_state_init(void)
     state.aux7 = -1.0f;
     state.aux8 = -1.0f;
     state.aux9 = -1.0f;
+    state.rgb_brightness = 1.0f;
     recovery_started_ms = 0u;
     have_msp = false;
     have_rc = false;
@@ -173,9 +175,15 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         const float aux_page = normalize_channel(raw_aux_page);
 #ifdef F469_RC_LAYOUT
         uint16_t raw_aux4;
+        uint16_t raw_rgb_brightness;
         const bool has_lighting_channels = frame->length >= 16u;
+        const bool has_rgb_brightness = frame->length >= 22u;
         if (has_lighting_channels &&
             !read_u16(frame, 14u, &raw_aux4)) {
+            return false;
+        }
+        if (has_rgb_brightness &&
+            !read_u16(frame, 20u, &raw_rgb_brightness)) {
             return false;
         }
 #else
@@ -213,6 +221,18 @@ bool vehicle_state_on_msp(const MspFrame *frame, uint32_t now_ms)
         if (has_lighting_channels) {
 #ifdef F469_RC_LAYOUT
             state.aux4 = normalize_channel(raw_aux4);
+            if (has_rgb_brightness) {
+                if (raw_rgb_brightness <= 1100u) {
+                    state.rgb_brightness = 0.0f;
+                } else if (raw_rgb_brightness >= 1900u) {
+                    state.rgb_brightness = 1.0f;
+                } else {
+                    state.rgb_brightness =
+                        (float)(raw_rgb_brightness - 1100u) / 800.0f;
+                }
+            } else {
+                state.rgb_brightness = 1.0f;
+            }
 #else
             state.aux6 = normalize_channel(raw_aux6);
             state.aux7 = normalize_channel(raw_aux7);

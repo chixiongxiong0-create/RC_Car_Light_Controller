@@ -382,6 +382,22 @@ static void limit_frame(LightingFrame *frame)
     frame->estimated_ma = led_estimated_ma(flat, WS2812_TOTAL_PIXELS);
 }
 
+#ifdef F469_RC_LAYOUT
+static void scale_rgb_brightness(Ws2812Frame *frame, float brightness)
+{
+    if (brightness < 0.0f) brightness = 0.0f;
+    if (brightness > 1.0f) brightness = 1.0f;
+    for (size_t group = 0u; group < WS2812_GROUP_COUNT; ++group) {
+        for (size_t pixel = 0u; pixel < WS2812_GROUP_LENGTHS[group]; ++pixel) {
+            LedRgb *color = &frame->groups[group][pixel];
+            color->r = (uint8_t)((float)color->r * brightness + 0.5f);
+            color->g = (uint8_t)((float)color->g * brightness + 0.5f);
+            color->b = (uint8_t)((float)color->b * brightness + 0.5f);
+        }
+    }
+}
+#endif
+
 void lighting_controller_init(LightingController *controller)
 {
     if (controller == NULL) return;
@@ -419,6 +435,7 @@ void lighting_controller_render(LightingController *controller, uint32_t now_ms,
 #ifdef F469_RC_LAYOUT
     if (!render_warning(now_ms, low_battery, board_fault, &frame->ws2812))
         f469_vehicle_effects_render(controller, now_ms, state, &frame->ws2812);
+    scale_rgb_brightness(&frame->ws2812, state->rgb_brightness);
 #else
     frame->roof_mode = controller->roof_mode;
     render_rear(controller, now_ms, state, &frame->ws2812);
