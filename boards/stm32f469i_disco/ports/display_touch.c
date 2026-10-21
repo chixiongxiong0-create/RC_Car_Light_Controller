@@ -70,7 +70,8 @@ static void touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
     data->point.x = result.x;
     data->point.y = result.y;
     data->state = result.pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
-    if (result.swiped) f469_ui_swipe(result.swipe_left, lv_tick_get());
+    if (result.gesture != F469_GESTURE_NONE)
+        f469_ui_gesture((int)result.gesture, lv_tick_get());
 }
 
 bool f469_display_touch_init(void)

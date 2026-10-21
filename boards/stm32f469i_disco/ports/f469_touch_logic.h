@@ -14,10 +14,20 @@ typedef struct {
     uint32_t start_ms;
 } F469TouchLogic;
 
+typedef enum {
+    F469_GESTURE_NONE,
+    F469_GESTURE_TAP,
+    F469_GESTURE_LEFT,
+    F469_GESTURE_RIGHT,
+    F469_GESTURE_UP,
+    F469_GESTURE_DOWN
+} F469Gesture;
+
 typedef struct {
     bool pressed;
     bool swiped;
     bool swipe_left;
+    F469Gesture gesture;
     int32_t x;
     int32_t y;
 } F469TouchResult;

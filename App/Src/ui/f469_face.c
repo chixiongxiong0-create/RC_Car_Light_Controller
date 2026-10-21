@@ -8,12 +8,14 @@
 enum { BATTERY_SEGMENTS = 6 };
 
 static lv_obj_t *left_eye;
+static lv_obj_t *face_panel;
 static lv_obj_t *right_eye;
 static lv_obj_t *left_pupil;
 static lv_obj_t *right_pupil;
 static lv_obj_t *left_brow;
 static lv_obj_t *right_brow;
 static lv_obj_t *mouth;
+static lv_obj_t *tongue;
 static lv_obj_t *mood_label;
 static lv_obj_t *mode_label;
 static lv_obj_t *voltage_label;
@@ -21,10 +23,12 @@ static lv_obj_t *battery_body;
 static lv_obj_t *battery_tip;
 static lv_obj_t *battery_segments[BATTERY_SEGMENTS];
 static int previous_mood = -1;
+static int previous_action = -1;
 static int previous_low_battery = -1;
 static int previous_battery_segments = -1;
 static int previous_battery_warning = -1;
-static int32_t previous_eye_height = -1;
+static int32_t previous_left_eye_height = -1;
+static int32_t previous_right_eye_height = -1;
 static int32_t previous_gaze = INT32_MIN;
 static int32_t previous_pupil_y = INT32_MIN;
 static int32_t previous_turn_x = INT32_MIN;
@@ -135,6 +139,7 @@ static void make_battery(lv_obj_t *parent)
 lv_obj_t *f469_face_create(lv_obj_t *parent)
 {
     lv_obj_t *screen = lv_obj_create(parent);
+    face_panel = screen;
     lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_pos(screen, 0, 0);
     lv_obj_set_size(screen, 800, 416);
@@ -160,6 +165,15 @@ lv_obj_t *f469_face_create(lv_obj_t *parent)
     lv_obj_set_style_border_width(mouth, 0, 0);
     lv_obj_set_style_radius(mouth, LV_RADIUS_CIRCLE, 0);
 
+    tongue = lv_obj_create(screen);
+    lv_obj_remove_flag(tongue, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_pos(tongue, 382, 339);
+    lv_obj_set_size(tongue, 36, 28);
+    lv_obj_set_style_bg_color(tongue, lv_color_hex(0xFF72B6), 0);
+    lv_obj_set_style_border_width(tongue, 0, 0);
+    lv_obj_set_style_radius(tongue, 12, 0);
+    lv_obj_add_flag(tongue, LV_OBJ_FLAG_HIDDEN);
+
     make_battery(screen);
     voltage_label = label(screen, "--.-V", 145, 365,
                           &lv_font_montserrat_24, UI_COLOR_GREEN);
@@ -169,38 +183,70 @@ lv_obj_t *f469_face_create(lv_obj_t *parent)
 }
 
 void f469_face_update(uint32_t now_ms, const VehicleState *state,
-                       FaceMood mood, bool low_battery, bool manual)
+                       FaceMood mood, FaceAction action,
+                       uint32_t action_at_ms,
+                       bool low_battery, bool manual)
 {
     if (state == NULL || left_eye == NULL) return;
-    static const char *const names[] = {
-        "CALM", "FOCUSED", "REVERSE", "LOW POWER", "LINK LOST"
-    };
-    set_text_if_changed(mood_label, names[(unsigned)mood <= FACE_LINK_LOST ?
-                                          (unsigned)mood : 0u]);
+    set_text_if_changed(mood_label, face_mood_name(mood));
     set_text_if_changed(mode_label, manual ? "MANUAL" : "AUTO");
     const FaceModel base = face_model_from_state(state, low_battery);
     const FaceMotionModel motion = face_motion_model(now_ms, base.aperture, mood);
     const bool reversing = mood == FACE_REVERSE;
-    const bool focused = mood == FACE_FOCUSED;
+    const bool focused = mood == FACE_FOCUSED || mood == FACE_RAGE ||
+                         mood == FACE_ANGRY;
+    const bool sleepy = mood == FACE_SLEEPY || mood == FACE_LOW_BATTERY;
+    const bool surprised = mood == FACE_SURPRISED || mood == FACE_BRAKE;
     const bool mood_changed = (int)mood != previous_mood;
+    const bool action_changed = (int)action != previous_action;
+    const uint32_t action_elapsed = (uint32_t)(now_ms - action_at_ms);
+    const uint32_t action_half = action_elapsed < 450u ? action_elapsed :
+                                 action_elapsed < 900u ? 900u - action_elapsed : 0u;
+    const int32_t action_curve = (int32_t)(action_half * 100u / 450u);
     const int32_t eye_width_left = reversing ? 105 : 165;
     const int32_t eye_width_right = reversing ? 140 : 165;
-    const int32_t eye_height = (reversing ? 145 : 170) -
+    int32_t eye_height = (reversing ? 145 : sleepy ? 65 :
+                                mood == FACE_HAPPY ? 82 :
+                                mood == FACE_TAUNT ? 100 :
+                                surprised ? 188 : 170) -
                                (motion.blink_closure * 125) / 100;
-    if (eye_height != previous_eye_height) {
-        lv_obj_set_size(left_eye, eye_width_left, eye_height);
-        lv_obj_set_size(right_eye, eye_width_right, eye_height);
-        previous_eye_height = eye_height;
+    if (action == FACE_ACTION_BLINK || action == FACE_ACTION_DOUBLE_BLINK) {
+        const uint32_t p = (uint32_t)(now_ms - action_at_ms) %
+                           (action == FACE_ACTION_BLINK ? 900u : 450u);
+        const int32_t close = p < 225u ? (int32_t)p * 120 / 225 :
+                              p < 450u ? (int32_t)(450u - p) * 120 / 225 : 0;
+        eye_height -= close;
+    }
+    if (eye_height < 18) eye_height = 18;
+    int32_t left_height = eye_height;
+    int32_t right_height = eye_height;
+    if (mood == FACE_CONFUSED) left_height = 115;
+    if (mood == FACE_WINK_LEFT) left_height = 18;
+    if (mood == FACE_WINK_RIGHT) right_height = 18;
+    if (action == FACE_ACTION_WINK_LEFT)
+        left_height -= ((left_height - 18) * action_curve) / 100;
+    if (action == FACE_ACTION_WINK_RIGHT)
+        right_height -= ((right_height - 18) * action_curve) / 100;
+    if (mood == FACE_LINK_LOST) {
+        if ((now_ms / 180u) & 1u) left_height = 18;
+        else right_height = 18;
+    }
+    if (left_height != previous_left_eye_height) {
+        lv_obj_set_size(left_eye, eye_width_left, left_height);
+        previous_left_eye_height = left_height;
+    }
+    if (right_height != previous_right_eye_height) {
+        lv_obj_set_size(right_eye, eye_width_right, right_height);
+        previous_right_eye_height = right_height;
     }
     const int32_t turn_x = (int32_t)(state->steering * 14.0f);
     const int32_t turn_lean = (int32_t)(state->steering * 13.0f);
-    const int32_t eye_y = 120 + (170 - eye_height) / 2;
     const int32_t left_x = reversing ? 212 : 190;
     const int32_t right_x = reversing ? 405 : 445;
     const int32_t left_eye_x = left_x + turn_x;
-    const int32_t left_eye_y = eye_y + turn_lean;
+    const int32_t left_eye_y = 120 + (170 - left_height) / 2 + turn_lean;
     const int32_t right_eye_x = right_x + turn_x;
-    const int32_t right_eye_y = eye_y - turn_lean;
+    const int32_t right_eye_y = 120 + (170 - right_height) / 2 - turn_lean;
     const bool left_pose_changed = left_eye_x != previous_left_x ||
                                    left_eye_y != previous_left_y;
     const bool right_pose_changed = right_eye_x != previous_right_x ||
@@ -221,6 +267,8 @@ void f469_face_update(uint32_t now_ms, const VehicleState *state,
         state->steering < 0.25f) {
         glance = lazy_gaze(now_ms);
     }
+    if (action == FACE_ACTION_SCAN)
+        glance += (int32_t)((action_elapsed % 900u) * 80u / 900u) - 40;
     const int32_t gaze = glance + motion.shake_x +
                          (int32_t)(state->steering * 18.0f) +
                          (reversing ? -30 : 0);
@@ -231,17 +279,23 @@ void f469_face_update(uint32_t now_ms, const VehicleState *state,
         previous_gaze = gaze;
         previous_pupil_y = pupil_y;
     }
-    const lv_color_t color = focused ? lv_color_hex(0xFF2038) :
-        mood == FACE_LINK_LOST || mood == FACE_LOW_BATTERY ?
-        lv_color_hex(0xFF646C) :
-        mood == FACE_REVERSE ? lv_color_white() : UI_COLOR_YELLOW;
+    const FaceTheme theme = face_theme(mood);
+    const lv_color_t color = lv_color_hex(theme.primary_rgb);
     if (mood_changed) {
         lv_obj_set_style_bg_color(left_pupil, color, 0);
         lv_obj_set_style_bg_color(right_pupil, color, 0);
         lv_obj_set_style_text_color(mood_label, color, 0);
+        lv_obj_set_style_bg_color(left_eye, lv_color_hex(theme.eye_rgb), 0);
+        lv_obj_set_style_bg_color(right_eye, lv_color_hex(theme.eye_rgb), 0);
+        lv_obj_set_style_border_color(left_eye, lv_color_hex(theme.frame_rgb), 0);
+        lv_obj_set_style_border_color(right_eye, lv_color_hex(theme.frame_rgb), 0);
+        lv_obj_set_style_bg_color(face_panel, lv_color_hex(theme.background_rgb), 0);
+        lv_obj_set_style_line_color(left_brow, lv_color_hex(theme.secondary_rgb), 0);
+        lv_obj_set_style_line_color(right_brow, lv_color_hex(theme.secondary_rgb), 0);
     }
-    if (mood_changed) {
-        if (focused) {
+    if (mood_changed || action_changed) {
+        if (focused || mood == FACE_TAUNT || mood == FACE_CONFUSED ||
+            action == FACE_ACTION_BROW) {
             lv_obj_remove_flag(left_brow, LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(right_brow, LV_OBJ_FLAG_HIDDEN);
         } else {
@@ -249,24 +303,37 @@ void f469_face_update(uint32_t now_ms, const VehicleState *state,
             lv_obj_add_flag(right_brow, LV_OBJ_FLAG_HIDDEN);
         }
     }
-    if (left_pose_changed || right_pose_changed) {
-        lv_obj_set_pos(left_brow, left_eye_x + 2, left_eye_y - 23);
-        lv_obj_set_pos(right_brow, right_eye_x - 2, right_eye_y - 23);
+    if (left_pose_changed || right_pose_changed || action == FACE_ACTION_BROW) {
+        const int32_t brow_lift = action == FACE_ACTION_BROW ?
+                                  action_curve / 5 : 0;
+        lv_obj_set_pos(left_brow, left_eye_x + 2, left_eye_y - 23 - brow_lift);
+        lv_obj_set_pos(right_brow, right_eye_x - 2, right_eye_y - 23 + brow_lift / 2);
     }
 
-    const int32_t mouth_width = reversing ? 30 : mood == FACE_FOCUSED ? 58 :
-                                mood == FACE_LINK_LOST ? 90 : 70;
-    const int32_t mouth_height = mood == FACE_FOCUSED ? 34 : 10;
-    if (mood_changed) {
+    const bool smiling = mood == FACE_HAPPY || action == FACE_ACTION_SMILE ||
+                         action == FACE_ACTION_SMIRK || mood == FACE_TAUNT;
+    const bool smirking = mood == FACE_TAUNT || action == FACE_ACTION_SMIRK;
+    const int32_t mouth_width = reversing ? 30 : surprised ? 36 : focused ? 58 :
+                                mood == FACE_LINK_LOST ? 90 : smiling ? 104 : 70;
+    const int32_t mouth_height = surprised ? 42 : focused ? 34 : smiling ? 20 : 10;
+    if (mood_changed || action_changed) {
         lv_obj_set_size(mouth, mouth_width, mouth_height);
         lv_obj_set_pos(mouth, (800 - mouth_width) / 2 + (reversing ? -18 : 0),
                        337);
         lv_obj_set_style_bg_color(mouth, color, 0);
         previous_mood = mood;
     }
-    if (turn_x != previous_turn_x || turn_lean != previous_turn_lean || reversing) {
+    if (action_changed) {
+        if (action == FACE_ACTION_TONGUE)
+            lv_obj_remove_flag(tongue, LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_add_flag(tongue, LV_OBJ_FLAG_HIDDEN);
+        previous_action = action;
+    }
+    if (turn_x != previous_turn_x || turn_lean != previous_turn_lean ||
+        reversing || action_changed) {
         lv_obj_set_pos(mouth, (800 - mouth_width) / 2 +
-                       (reversing ? -18 : 0) + turn_x, 337 + turn_lean / 2);
+                       (reversing ? -18 : 0) + (smirking ? 20 : 0) + turn_x,
+                       337 + turn_lean / 2 - (smirking ? 7 : 0));
         previous_turn_x = turn_x;
         previous_turn_lean = turn_lean;
     }

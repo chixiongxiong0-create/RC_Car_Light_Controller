@@ -100,4 +100,18 @@ void test_face_model(void)
 
     const FaceMotionModel blink_fast = face_motion_model(2700u, 35u, FACE_IDLE);
     assert(blink_fast.blink_closure > 0u);
+
+    const FaceTheme happy = face_theme(FACE_HAPPY);
+    const FaceTheme angry = face_theme(FACE_ANGRY);
+    const FaceTheme sleepy = face_theme(FACE_SLEEPY);
+    assert(face_theme(FACE_IDLE).primary_rgb == 0x50D9FFu);
+    assert(face_theme(FACE_RAGE).primary_rgb == 0xFF6B2Cu);
+    assert(face_theme(FACE_LOW_BATTERY).primary_rgb == 0xFF5964u);
+    assert(face_theme(FACE_TAUNT).primary_rgb == 0xED4CFFu);
+    assert(happy.primary_rgb != angry.primary_rgb);
+    assert(happy.secondary_rgb != sleepy.secondary_rgb);
+    assert(face_mood_name(FACE_SURPRISED) != 0);
+    assert(face_mood_is_alert(FACE_LINK_LOST));
+    assert(face_mood_is_alert(FACE_LOW_BATTERY));
+    assert(!face_mood_is_alert(FACE_HAPPY));
 }

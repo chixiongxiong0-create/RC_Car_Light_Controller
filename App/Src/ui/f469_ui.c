@@ -7,6 +7,7 @@
 #include "ui/f469_info.h"
 #include "ui/two_screen_controller.h"
 #include "ui/ui_theme.h"
+#include "f469_touch_logic.h"
 
 static TwoScreenController navigation;
 static lv_obj_t *face_area;
@@ -98,7 +99,20 @@ void f469_ui_button(bool touch_available)
 
 void f469_ui_swipe(bool left, uint32_t now_ms)
 {
-    two_screen_swipe(&navigation, left, now_ms);
+    (void)now_ms;
+    two_screen_page_swipe(&navigation, left);
+}
+
+void f469_ui_gesture(int gesture, uint32_t now_ms)
+{
+    if (gesture == F469_GESTURE_LEFT || gesture == F469_GESTURE_RIGHT)
+        two_screen_page_swipe(&navigation, gesture == F469_GESTURE_LEFT);
+    else if (two_screen_view(&navigation).main == MAIN_FACE &&
+             (gesture == F469_GESTURE_UP || gesture == F469_GESTURE_DOWN))
+        two_screen_face_swipe(&navigation, gesture == F469_GESTURE_UP, now_ms);
+    else if (two_screen_view(&navigation).main == MAIN_FACE &&
+             gesture == F469_GESTURE_TAP)
+        two_screen_face_tap(&navigation);
 }
 
 bool f469_ui_brightness_hit_test(int32_t x, int32_t y)
@@ -146,7 +160,9 @@ void f469_ui_tick(uint32_t now_ms, const VehicleState *state,
         previous_demo = demo;
     }
     if (view.main == MAIN_FACE)
-        f469_face_update(now_ms, state, view.mood, low_battery, view.manual);
+        f469_face_update(now_ms, state, view.mood, view.action,
+                         view.action_at_ms,
+                         low_battery, view.manual);
     else
         f469_info_update(now_ms, state, diagnostics, view.info);
 }

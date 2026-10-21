@@ -32,10 +32,18 @@ F469TouchResult f469_touch_step(F469TouchLogic *touch, bool raw_pressed,
         const int32_t dx = touch->x - touch->start_x;
         const int32_t abs_dx = distance(touch->x, touch->start_x);
         const int32_t abs_dy = distance(touch->y, touch->start_y);
-        result.swiped = touch->swipe_allowed && abs_dx >= SWIPE_PIXELS &&
-                        abs_dx * 2 >= abs_dy * 3 &&
-                        (uint32_t)(now_ms - touch->start_ms) <= SWIPE_MAX_MS;
+        const bool timely = (uint32_t)(now_ms - touch->start_ms) <= SWIPE_MAX_MS;
+        result.swiped = touch->swipe_allowed && timely &&
+                         (abs_dx >= SWIPE_PIXELS || abs_dy >= SWIPE_PIXELS);
         result.swipe_left = dx < 0;
+        if (result.swiped && abs_dx * 2 >= abs_dy * 3)
+            result.gesture = dx < 0 ? F469_GESTURE_LEFT : F469_GESTURE_RIGHT;
+        else if (result.swiped && abs_dy * 2 >= abs_dx * 3)
+            result.gesture = touch->y < touch->start_y ?
+                             F469_GESTURE_UP : F469_GESTURE_DOWN;
+        else if (timely && abs_dx < SWIPE_PIXELS && abs_dy < SWIPE_PIXELS)
+            result.gesture = F469_GESTURE_TAP;
+        else result.swiped = false;
         touch->active = false;
         touch->missing_once = false;
     }
